@@ -1,15 +1,25 @@
 import { TextInput } from '@mantine/core';
 
-import { entityNames, getEntityFields, getEntityFieldsAndRelations, ITEM_CATEGORY } from '~client/db/instant.schema';
+import { entityNames, getEntityFields, ITEM_CATEGORY } from '~client/db/instant.schema';
 import { CheckboxWrapper, DateInputWrapper, ReusableFormComponentProps } from '~client/lib/components/components';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
 import { useRouteId } from '~client/lib/utils';
+import { db } from '~client/main';
 import { IDBField, IDBForm } from '~instantdb-react-ui/form/form';
 
-const itemFields = getEntityFieldsAndRelations(entityNames.items);
+const itemFields = getEntityFields(entityNames.items);
 
 function ItemForm({ type, children, ...props }: ReusableFormComponentProps) {
 	const id = useRouteId();
+
+	const relationsQuery = db.useQuery({
+		items: {
+			$: { where: { id } },
+			rooms: {},
+			owner: {},
+		},
+	});
+	console.log(relationsQuery.data);
 
 	return (
 		<IDBForm id={id} entity={entityNames.items} type={type} {...props}>
@@ -25,9 +35,9 @@ function ItemForm({ type, children, ...props }: ReusableFormComponentProps) {
 			<IDBField fieldName={itemFields.date}>
 				<DateInputWrapper label="Date" />
 			</IDBField>
-			<IDBField fieldName={itemFields.owner}>
-				<SearchableSelect label="Owner" data={[]} />
-			</IDBField>
+			{/* <IDBField fieldName="owner">
+				<SearchableSelect label="Owner" />
+			</IDBField> */}
 			{children}
 		</IDBForm>
 	);

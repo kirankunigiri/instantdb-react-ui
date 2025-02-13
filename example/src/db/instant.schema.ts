@@ -33,7 +33,10 @@ const _schema = i.schema({
 		}),
 		items: i.entity({
 			name: i.string(),
-			shareable: i.boolean(),
+			shareable: addZod(
+				i.boolean(),
+				() => z.boolean().default(true),
+			),
 			category: addZod(
 				i.string(),
 				() => z.nativeEnum(ITEM_CATEGORY),
@@ -90,81 +93,11 @@ export const getEntityFields = <K extends keyof AppSchema['entities']>(
 	);
 };
 
-// Not changing the name to include id
-export const getEntityFieldsAndRelations = <K extends keyof AppSchema['entities']>(
-	entityName: K,
-): { [P in keyof InstaQLEntity<AppSchema, K, { owner: {}, room: {} }>]: P } => {
-	// Get regular fields
-	const fields = Object.keys(_schema.entities[entityName].attrs);
-
-	// Get relation fields by checking links
-	const relationFields = Object.entries(_schema.links)
-		.filter(([_, link]) => link.forward.on === entityName)
-		.map(([_, link]) => `${link.forward.label}Id`);
-
-	// Combine both regular and relation fields
-	return [...fields, ...relationFields].reduce(
-		(acc, key) => ({ ...acc, [key]: key }),
-		{} as { [P in keyof InstaQLEntity<AppSchema, K, { owner: {}, room: {} }>]: P },
-	);
-};
-
-// Value, but not key, transformed to include Id
-// export const getEntityFieldsAndRelations = <K extends keyof AppSchema['entities']>(
-// 	entityName: K,
-// ): { [P in keyof InstaQLEntity<AppSchema, K, { owner: {}, room: {} }>]: P extends 'owner' | 'room' ? `${P}Id` : P } => {
-// 	// Get regular fields
-// 	const fields = Object.keys(_schema.entities[entityName].attrs);
-
-// 	// Get relation fields by checking links
-// 	const relationFields = Object.entries(_schema.links)
-// 		.filter(([_, link]) => link.forward.on === entityName)
-// 		.map(([_, link]) => `${link.forward.label}Id`);
-
-// 	// Combine both regular and relation fields
-// 	return [...fields, ...relationFields].reduce(
-// 		(acc, key) => {
-// 		// Remove 'Id' from the key when looking up the value
-// 			const valueKey = key.endsWith('Id') ? key.slice(0, -2) : key;
-// 			return { ...acc, [key]: valueKey };
-// 		},
-// 		{} as { [P in keyof InstaQLEntity<AppSchema, K, { owner: {}, room: {} }>]: P extends 'owner' | 'room' ? `${P}Id` : P },
-// 	);
-// };
-
-// Key and value transformed to include Id
-// export const getEntityFieldsAndRelations = <K extends keyof AppSchema['entities']>(
-// 	entityName: K,
-// ): { [P in keyof InstaQLEntity<AppSchema, K, { owner: {}, room: {} }>]: P extends 'owner' | 'room' ? `${P}Id` : P } extends infer T ? {
-// 	[P in keyof T as P extends 'owner' | 'room' ? `${P}Id` : P]: T[P]
-// } : never => {
-// 	// Get regular fields
-// 	const fields = Object.keys(_schema.entities[entityName].attrs);
-
-// 	// Get relation fields by checking links
-// 	const relationFields = Object.entries(_schema.links)
-// 		.filter(([_, link]) => link.forward.on === entityName)
-// 		.map(([_, link]) => {
-// 			const label = link.forward.label;
-// 			return { [`${label}Id`]: `${label}Id` };
-// 		})
-// 		.reduce((acc, curr) => ({ ...acc, ...curr }), {});
-
-// 	// Combine both regular and relation fields
-// 	return {
-// 		...Object.keys(fields).reduce((acc, key) => ({ ...acc, [key]: key }), {}),
-// 		...relationFields,
-// 	} as { [P in keyof InstaQLEntity<AppSchema, K, { owner: {}, room: {} }>]: P extends 'owner' | 'room' ? `${P}Id` : P } extends infer T ? {
-// 		[P in keyof T as P extends 'owner' | 'room' ? `${P}Id` : P]: T[P]
-// 	} : never;
-// };
-
 // Test that type inference works
 type Item = InstaQLEntity<AppSchema, 'items'>;
-const itemFields = getEntityFieldsAndRelations('items');
 
 // Scratchpad
 // item.owner
-// IDBCustomField with fieldName="owner" will receive id(s) of strings as value, array of all objects as data
-// IDBCustomField can take in a custom list query for all persons to pick from
+// IDBField with fieldName="owner" will receive id(s) of strings as value, array of all objects as data
+// IDBField can take in a custom list query for all persons to pick from
 // onChange will update the link instead of changing any actual values
