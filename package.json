@@ -1,0 +1,33 @@
+{
+	"name": "instantdb-react-ui-monorepo",
+	"private": true,
+	"workspaces": [
+		"example",
+		"package"
+	],
+	"scripts": {
+		"dev": "bun --filter '*' dev",
+		"deploy": "bun --filter '*' deploy",
+		"dev:client": "cd example && bun dev",
+		"deploy:client": "bun --filter 'example' deploy",
+		"reset-node": "rm -rf node_modules && rm -rf example/node_modules && rm -rf package/node_modules && bun i",
+		"lint": "eslint . --ext .js,.jsx,.ts,.tsx"
+	},
+	"devDependencies": {
+		"@eslint/compat": "^1.2.6",
+		"@eslint/js": "^9.20.0",
+		"@stylistic/eslint-plugin": "^3.1.0",
+		"@types/eslint__js": "^8.42.3",
+		"dotenv-cli": "^8.0.0",
+		"eslint": "^9.20.1",
+		"eslint-plugin-jsonc": "^2.19.1",
+		"eslint-plugin-react": "^7.37.4",
+		"eslint-plugin-react-hooks": "^5.1.0",
+		"eslint-plugin-simple-import-sort": "^12.1.1",
+		"eslint-plugin-tailwindcss": "^3.18.0",
+		"globals": "^15.14.0",
+		"typescript": "^5.7.3",
+		"typescript-eslint": "^8.24.0",
+		"wrangler": "^3.108.1"
+	}
+}

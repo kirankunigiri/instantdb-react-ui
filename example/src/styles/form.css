@@ -1,0 +1,5 @@
+form {
+	.mantine-Checkbox-root {
+		@apply my-2;
+	}
+}

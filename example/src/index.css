@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+	font-family: system-ui, Inter, Avenir, Helvetica, Arial, sans-serif;
+	line-height: 1.5;
+	font-weight: 400;
+	font-synthesis: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+body {
+	/* Mantine Overrides */
+	--mantine-color-body: light-dark(white, #09090B);
+
+	/* Custom Colors */
+	--shadcn-darkest: #09090B;
+	--shadcn-dark: #18181B;
+	--shadcn-light: #FAFAFA;
+	--sidebar-bg: light-dark(#FBFBFB, #151518);
+	--btn-default: light-dark(var(--shadcn-dark), var(--shadcn-light));
+	--btn-reverse: light-dark(var(--shadcn-light), var(--shadcn-dark));
+	--btn-secondary: light-dark(#F4F4F5, #27272A);
+	--bd-light: light-dark(#E4E4E7, #27272A);
+	--bd-strong: light-dark(#E4E4E7, #37373b);
+
+	/* Temp */
+	--color-hover: light-dark(#eeeeef, #1e1e20);
+	--focus-ring-color: light-dark(#A1A1AA, #D4D4D8);
+
+	/* Layout */
+	--list-margin: 1rem
+}
+
+/* Add custom focus ring color for Mantine (used in theme object) */
+.focus-auto {
+	&:focus-visible {
+		outline: 2px solid var(--focus-ring-color);
+		outline-offset: 2px;
+	}
+}
+
+/* Main Page */
+.page {
+	@apply flex size-full;
+
+	.left-list {
+		@apply flex flex-col border-r border-r-bd-light px-[var(--list-margin)];
+	}
+
+	.right-detail {
+		@apply flex flex-col h-full grow p-4 size-full overflow-y-scroll;
+	}
+}
+
+
+/* Sidebar */
+.sidebar-link {
+	@apply flex h-8 w-full items-center gap-[10px] rounded-md bg-transparent pl-3 pr-[18px] text-left font-medium capitalize text-shadcn-darkest hover:bg-[var(--color-hover)] dark:text-shadcn-light [&.active]:bg-shadcn-dark [&.active]:text-shadcn-light [&.active]:dark:bg-btn-secondary;
+}
+
+/* Desktop Styles */
+@media (min-width: 48em) {
+	.left-list {
+		@apply w-2/5 min-w-[40%] max-w-[800px];
+	}
+}
+
+/* Mobile Styles */
+@media (max-width: 48em) {
+	.left-list {
+		@apply w-full max-w-full;
+	}
+
+	.sidebar-group-title {
+		@apply text-base font-bold;
+	}
+
+	.sidebar-link {
+		@apply h-10 text-base font-bold;
+	}
+}
+
+/* When a list gets a scroll area, the scrollbars show inside the list-margin */
+/* To fix this, we offset the scroll area by the list-margin and increase the size to take up the full width */
+.list-scrollarea {
+	@apply h-full py-0 -ml-[var(--list-margin)] px-[var(--list-margin)];
+	width: calc(100% + var(--list-margin)*2);
+}
+
+.list-item {
+	@apply mb-2 flex items-center justify-between rounded-lg border border-bd-light bg-sidebar-bg px-3 py-2.5 transition-colors duration-100 hover:cursor-pointer hover:bg-bd-light;
+
+	&[data-selected="true"] {
+		@apply bg-bd-light;
+	}
+}
+
+/* Center mantine pagination controls */
+.mantine-Pagination-root {
+	.mantine-Group-root {
+		@apply justify-center;
+	}
+}

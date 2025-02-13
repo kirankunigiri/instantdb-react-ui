@@ -1,0 +1,136 @@
+.mantine-Textarea-input {
+	font-size: inherit;
+	line-height: inherit;
+}
+
+.mantine-InputWrapper-label {
+	margin-bottom: 4px;
+	margin-left: 2px;
+}
+
+.mantine-Input-input {
+
+	position: relative;
+
+	/* Add custom border to all inputs except the unstyled variant */
+	&[data-variant]:not([data-variant='unstyled']) {
+		background: none;
+		border-radius: 6px;
+		border-color: var(--bd-light);
+
+		/* Add focus ring with a 2px gap */
+		&:focus {
+			outline: 2px solid var(--focus-ring-color);
+			outline-offset: 2px;
+		}
+	}
+}
+
+/* Remove extra gap for input fields */
+.mantine-InputBase-root {
+	margin-top: -8px;
+}
+
+/* -------------------------------------------------------------------------------- */
+/* Custom SearchableSelect */
+/* -------------------------------------------------------------------------------- */
+
+.mantine-Popover-dropdown {
+	background-color: var(--mantine-color-body);
+	border-color: var(--bd-light);
+}
+
+
+.mantine-Combobox-option {
+	&:hover {
+		background-color: inherit;
+		color: inherit;
+	}
+
+	&[data-combobox-selected] {
+		background-color: var(--btn-secondary);
+		color: var(--btn-default);
+	}
+}
+
+.mantine-Combobox-dropdown {
+	padding: 0 !important;
+}
+
+.mantine-Combobox-search {
+	margin: 0;
+}
+
+.mantine-Combobox-options {
+	padding: 4px;
+}
+
+
+/* -------------------------------------------------------------------------------- */
+/* Checkbox */
+/* -------------------------------------------------------------------------------- */
+
+/* Remove background color from unchecked checkbox */
+.mantine-Checkbox-input:not(:checked) {
+	background-color: transparent;
+}
+
+
+/* -------------------------------------------------------------------------------- */
+/* Labels - make them look like description (dimmed & small) */
+/* -------------------------------------------------------------------------------- */
+
+.mantine-InputWrapper-required {
+	margin-left: 4px;
+}
+.mantine-InputWrapper-label {
+	text-transform: capitalize;
+	font-size: 12px;
+	color: var(--mantine-color-dimmed);
+}
+
+/* -------------------------------------------------------------------------------- */
+/* SegmentedControl */
+/* -------------------------------------------------------------------------------- */
+.mantine-SegmentedControl-root {
+	height: 2.8rem;
+	background-color: var(--mantine-color-body);
+	border-color: var(--bd-light);
+	border-radius: 6px;
+	border-width: 1px;
+}
+
+.mantine-SegmentedControl-label {
+	 height: 100%;
+}
+
+.mantine-SegmentedControl-indicator {
+	background-color: var(--btn-secondary);
+}
+
+/* -------------------------------------------------------------------------------- */
+/* Dirty Fields Indicator */
+/* -------------------------------------------------------------------------------- */
+
+.mantine-InputWrapper-label, mantine-Checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.mantine-InputWrapper-label::before, .mantine-Checkbox-label::before {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    aspect-ratio: 1;
+    background-color: rgb(15, 169, 15);
+    border-radius: 50%;
+    margin-right: -7px;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.dirty .mantine-InputWrapper-label::before, .dirty .mantine-Checkbox-label::before {
+    opacity: 1;
+    margin-right: 5px;
+}

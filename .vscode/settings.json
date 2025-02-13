@@ -1,0 +1,15 @@
+{
+	"files.exclude": {
+		"**/.git": true,
+		"**/.svn": true,
+		"**/.hg": true,
+		"**/CVS": true,
+		"**/.DS_Store": true,
+		"**/Thumbs.db": true,
+		"**/.sync": true,
+		"**/node_modules": true,
+		"**/vite-env.d.ts": true
+	},
+	"hide-files.files": [],
+	"typescript.tsdk": "node_modules/typescript/lib"
+}

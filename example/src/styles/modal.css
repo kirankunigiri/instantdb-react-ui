@@ -1,0 +1,10 @@
+.mantine-Modal-title {
+	@apply text-lg font-semibold;
+	color: var(--mantine-color-text);
+}
+
+.mantine-Modal-content {
+	@apply px-2 pb-2;
+	border: 1px solid var(--bd-light);
+	border-radius: 8px;
+}

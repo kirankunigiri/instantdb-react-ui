@@ -1,0 +1,35 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+
+		// Client task
+		{
+			"label": "dev:client",
+			"type": "shell",
+			"command": "bun run dev:client",
+			"presentation": {
+				"showReuseMessage": false,
+				"clear": true
+			},
+			"isBackground": true,
+			"problemMatcher": [
+				"$tsc-watch"
+			]
+		},
+
+		// Schema push task
+		{
+			"label": "schema:push",
+			"type": "shell",
+			"command": "cd example/src/db && bun dotenv -e ../../../.env -- bunx instant-cli@latest push schema",
+			"presentation": {
+				"showReuseMessage": false,
+				"clear": true
+			},
+			"isBackground": true,
+			"problemMatcher": [
+				"$tsc-watch"
+			]
+		}
+	]
+}

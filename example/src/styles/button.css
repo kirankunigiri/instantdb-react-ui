@@ -1,0 +1,12 @@
+.mantine-Button-root {
+
+	/* Primary variant */
+	&[data-variant='primary']:not([data-disabled='true']) {
+		background-color: var(--btn-default);
+
+		.mantine-Button-label {
+			color: var(--btn-reverse);
+		}
+	}
+}
+

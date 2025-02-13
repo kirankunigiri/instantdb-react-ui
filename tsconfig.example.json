@@ -1,0 +1,49 @@
+// Shared config for example-client and example-server only
+{
+	"compilerOptions": {
+		/* Base Options */
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"target": "ES2022",
+		"moduleDetection": "force",
+		"isolatedModules": true,
+		"verbatimModuleSyntax": false,
+		/* Module */
+		"composite": true,
+		"forceConsistentCasingInFileNames": true,
+		"emitDeclarationOnly": true,
+		"allowImportingTsExtensions": false,
+		"jsx": "react-jsx",
+		/* Strictness & Rules */
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"noImplicitOverride": true,
+		"useDefineForClassFields": true,
+		"noUnusedLocals": false,
+		"noUnusedParameters": true,
+		"noFallthroughCasesInSwitch": true,
+		/* Paths */
+		"baseUrl": ".",
+		"paths": {
+			"~client/*": [
+				"./example/src/*"
+			],
+			"~instantdb-react-ui/*": [
+				"./package/src/*"
+			]
+		}
+	},
+	"exclude": [
+		"**/node_modules",
+		"**/dist"
+	],
+	"files": [],
+	"references": [
+		{
+			"path": "./example/tsconfig.json"
+		},
+		{
+			"path": "./package/tsconfig.json"
+		}
+	]
+}
