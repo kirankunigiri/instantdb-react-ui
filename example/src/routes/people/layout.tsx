@@ -1,9 +1,9 @@
+import { InstaQLEntity } from '@instantdb/react';
 import { Pagination, SegmentedControl, Space, TextInput } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
 import { AppSchema, entityNames } from '~client/db/instant.schema';
-import { ExtendedInstaQLEntity } from '~client/db/instant-extended';
 import List from '~client/lib/list/list';
 import { ListHeader } from '~client/lib/list/list-header';
 import { OutletWrapper } from '~client/lib/outlet-wrapper';
@@ -11,7 +11,7 @@ import { type IDBQuery } from '~client/main';
 import PersonForm from '~client/routes/people/-form';
 import { useIDBPagination } from '~instantdb-react-ui/index';
 
-type Person = ExtendedInstaQLEntity<AppSchema, 'persons'>;
+type Person = InstaQLEntity<AppSchema, 'persons'>;
 
 export const Route = createFileRoute('/people')({
 	component: PersonList,

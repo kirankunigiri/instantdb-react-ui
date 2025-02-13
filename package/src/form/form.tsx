@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { id } from '@instantdb/react';
 import { useForm } from '@mantine/form';
 import { zodResolver } from 'mantine-form-zod-resolver';
@@ -7,16 +8,14 @@ import { z } from 'zod';
 
 import { useIDBReactUIProvider } from '../utils/provider';
 
-interface IDBCustomFieldProps {
+interface IDBFieldProps {
 	fieldName: string
 	children: ReactElement
 }
 
-// TODO: Update vs. Create forms
 // TODO: Relations
 // TODO: Re-usable build zod schema function
 // TODO: First get the list of IDBCustomFields, and only build the zod schema that is needed)
-// TODO: Create actual default values based on the field type (if it doesn't already exist in the schema)
 // TODO: Get defaults defined in the zod schema (check nested objects)
 // TODO: Fix type errors
 // TODO: Memoize replaced components
@@ -40,35 +39,71 @@ function getDefaultSchema(valueType: string): z.ZodType {
 }
 
 // Custom field component that will be replaced
-export function IDBCustomField({ fieldName, children }: IDBCustomFieldProps) {
+export function IDBField({ fieldName, children }: IDBFieldProps) {
 	// Ensure there's exactly one child element
 	if (!isValidElement(children)) {
 		throw new Error('IDBCustomField must have exactly one child element');
 	}
 	return children;
 }
-IDBCustomField.displayName = 'IDBCustomField';
+IDBField.displayName = 'IDBField';
 
-// New extracted function for creating zod schema
-function createEntityZodSchema(entityAttrs: Record<string, any>): z.ZodObject<any> {
-	return z.object(
-		Object.entries(entityAttrs).reduce((acc, [key, attr]) => {
-			// Safely check and execute _zodTransform
-			const transform = (attr as any)._zodTransform;
-			if (transform && typeof transform === 'function') {
-				try {
-					acc[key] = transform();
-				} catch (e) {
-					// If transform fails, create default schema based on valueType
-					acc[key] = getDefaultSchema(attr.valueType);
+// Add a map for default values by valueType
+const DEFAULT_VALUES_BY_TYPE: Record<string, any> = {
+	boolean: false,
+	string: '',
+	number: 0,
+	date: () => Date.now(),
+	// Add other types as needed
+} as const;
+
+function getDefaultValueByType(valueType: string): any {
+	const defaultValue = DEFAULT_VALUES_BY_TYPE[valueType];
+	// Use empty string for for unknown types
+	if (defaultValue === undefined) return '';
+	return typeof defaultValue === 'function' ? defaultValue() : defaultValue;
+}
+
+// New extracted function for creating zod schema and getting defaults
+function createEntityZodSchema(entityAttrs: Record<string, any>): {
+	schema: z.ZodObject<any>
+	defaults: Record<string, any>
+} {
+	const schemaObj: Record<string, z.ZodType> = {};
+	const defaults: Record<string, any> = {};
+
+	Object.entries(entityAttrs).forEach(([key, attr]) => {
+		// Safely check and execute _zodTransform
+		const transform = (attr as any)._zodTransform;
+		let fieldSchema: z.ZodType;
+
+		if (transform && typeof transform === 'function') {
+			try {
+				fieldSchema = transform();
+				// Extract default if it exists from Zod schema
+				if ('_def' in fieldSchema && 'defaultValue' in fieldSchema._def) {
+					const defaultValue = fieldSchema._def.defaultValue;
+					defaults[key] = typeof defaultValue === 'function' ? defaultValue() : defaultValue;
+				} else {
+					// If no Zod default, use valueType default
+					defaults[key] = getDefaultValueByType(attr.valueType);
 				}
-			} else {
-				// Create default schema based on valueType
-				acc[key] = getDefaultSchema(attr.valueType);
+			} catch (e) {
+				fieldSchema = getDefaultSchema(attr.valueType);
+				defaults[key] = getDefaultValueByType(attr.valueType);
 			}
-			return acc;
-		}, {} as Record<string, z.ZodType>),
-	);
+		} else {
+			fieldSchema = getDefaultSchema(attr.valueType);
+			defaults[key] = getDefaultValueByType(attr.valueType);
+		}
+
+		schemaObj[key] = fieldSchema;
+	});
+
+	return {
+		schema: z.object(schemaObj),
+		defaults,
+	};
 }
 
 // ========================================================
@@ -79,7 +114,7 @@ function processChildren(element: ReactNode, form: ReturnType<typeof useForm>): 
 	if (!isValidElement(element)) return element;
 
 	// Check if this is an IDBCustomField component
-	if (typeof element.type === 'function' && element.type.displayName === IDBCustomField.displayName) {
+	if (typeof element.type === 'function' && element.type.displayName === IDBField.displayName) {
 		const { fieldName } = element.props;
 		const customElement = element.props.children;
 		// console.log(form.getInputProps(fieldName));
@@ -124,16 +159,17 @@ export const IDBForm = memo(function BaseForm(props: IDBFormProps) {
 	const entity = schema.entities[props.entity];
 	const entityFields = Object.keys(entity.attrs);
 
-	// Use the extracted function to create schema
-	const zodSchema = createEntityZodSchema(entity.attrs);
+	// Use the extracted function to create schema and get defaults
+	const { schema: zodSchema, defaults } = createEntityZodSchema(entity.attrs);
 
 	const form = useForm({
 		mode: 'controlled',
 		validateInputOnChange: true,
 		initialValues: entityFields.reduce((acc, field) => {
-			acc[field] = ''; // TODO: use actual zod defaults or primitive defaults
+			// Use zod default if available, otherwise use empty string
+			acc[field] = field in defaults ? defaults[field] : '';
 			return acc;
-		}, {} as Record<string, string>),
+		}, {} as Record<string, any>),
 		validate: zodResolver(zodSchema),
 	});
 

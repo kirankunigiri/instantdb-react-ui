@@ -1,3 +1,8 @@
+/**
+ * NOTE: This file is deprecated. The original plan was to use code generation to create zod schemas, but the
+ * new approach is to directly inject zod schemas into the instantdb schema. This file is kept for reference.
+ */
+
 import * as fs from 'fs';
 import * as path from 'path';
 import * as ts from 'typescript';

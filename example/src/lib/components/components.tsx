@@ -28,6 +28,7 @@ export function DateInputWrapper({ value, onChange, ...props }: DateInputWrapper
 			label="Date"
 			value={value ? new Date(value) : null}
 			onChange={handleChange}
+			valueFormat="MM/DD/YYYY hh:mm A"
 			{...props}
 		/>
 	);

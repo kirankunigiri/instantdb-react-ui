@@ -1,8 +1,6 @@
 import { DataAttrDef, i, InstaQLEntity } from '@instantdb/core';
 import { z, ZodTypeAny } from 'zod';
 
-import { ExtendedInstaQLEntity, i as iExt, ResolveEntityAttrs } from './instant-extended';
-
 // Enums
 export enum ITEM_CATEGORY {
 	Food = 'Food',
@@ -12,50 +10,6 @@ export enum ITEM_CATEGORY {
 	Decorations = 'Decorations',
 	Other = 'Other',
 }
-
-// const _schema = iExt.schema({
-// 	entities: {
-// 		persons: iExt.entity({
-// 			name: iExt.string().unique().indexed(),
-// 			email: iExt.string().unique().indexed().withZod(() => z.string().email().min(5).max(100)),
-// 		}),
-// 		items: iExt.entity({
-// 			name: iExt.string(),
-// 			shareable: iExt.boolean(),
-// 			category: iExt.string().withZod(() => z.nativeEnum(ITEM_CATEGORY)),
-// 			date: iExt.date().indexed().withZod(() => z.number().min(new Date('2020-01-01').getTime())),
-// 		}),
-// 		houseRooms: iExt.entity({
-// 			name: iExt.string(),
-// 			description: iExt.string(),
-// 			testDefaultValue: iExt.string(),
-// 		}),
-// 	},
-// 	links: {
-// 		personRoom: {
-// 			forward: { on: 'persons', has: 'one', label: 'room' },
-// 			reverse: { on: 'houseRooms', has: 'many', label: 'people' },
-// 		},
-// 		itemRoom: {
-// 			forward: { on: 'items', has: 'one', label: 'room' },
-// 			reverse: { on: 'houseRooms', has: 'many', label: 'items' },
-// 		},
-// 		itemOwner: {
-// 			forward: { on: 'items', has: 'one', label: 'owner' },
-// 			reverse: { on: 'persons', has: 'many', label: 'items' },
-// 		},
-// 	},
-// });
-
-// const addZod = (input: DataAttrDef<any, any>) => {
-// 	return {
-// 		...input,
-// 		withZod: (zodTransform: () => ZodTypeAny) => ({
-// 			...input,
-// 			_zodTransform: zodTransform,
-// 		}),
-// 	};
-// };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const addZod = <T extends DataAttrDef<any, any>>(
@@ -72,16 +26,24 @@ const _schema = i.schema({
 	entities: {
 		persons: i.entity({
 			name: i.string().unique().indexed(),
-			email: addZod(i.string().unique().indexed(),
-				() => z.string().email()),
+			email: addZod(
+				i.string().unique().indexed(),
+				() => z.string().email().min(5).max(100),
+			),
 		}),
 		items: i.entity({
 			name: i.string(),
 			shareable: i.boolean(),
-			category: i.string(),
-			date: i.date().indexed(),
+			category: addZod(
+				i.string(),
+				() => z.nativeEnum(ITEM_CATEGORY),
+			),
+			date: addZod(
+				i.date().indexed(),
+				() => z.number().min(new Date('2020-01-01').getTime()).default(Date.now),
+			),
 		}),
-		houseRooms: i.entity({
+		rooms: i.entity({
 			name: i.string(),
 			description: i.string(),
 			testDefaultValue: i.string(),
@@ -90,11 +52,11 @@ const _schema = i.schema({
 	links: {
 		personRoom: {
 			forward: { on: 'persons', has: 'one', label: 'room' },
-			reverse: { on: 'houseRooms', has: 'many', label: 'people' },
+			reverse: { on: 'rooms', has: 'many', label: 'people' },
 		},
 		itemRoom: {
 			forward: { on: 'items', has: 'one', label: 'room' },
-			reverse: { on: 'houseRooms', has: 'many', label: 'items' },
+			reverse: { on: 'rooms', has: 'many', label: 'items' },
 		},
 		itemOwner: {
 			forward: { on: 'items', has: 'one', label: 'owner' },
@@ -105,14 +67,12 @@ const _schema = i.schema({
 
 // This helps Typescript display nicer intellisense
 type _AppSchema = typeof _schema;
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface AppSchema extends _AppSchema {}
 const schema: AppSchema = _schema;
 
 export type { AppSchema };
 export default schema;
-
-// Helper to get any entity type
-// export type ResolvedEntity<K extends keyof AppSchema['entities']> = ResolveEntityAttrs<AppSchema['entities'][K]>;
 
 // List of entity names
 export const entityNames = Object.keys(_schema.entities).reduce(
@@ -130,6 +90,81 @@ export const getEntityFields = <K extends keyof AppSchema['entities']>(
 	);
 };
 
+// Not changing the name to include id
+export const getEntityFieldsAndRelations = <K extends keyof AppSchema['entities']>(
+	entityName: K,
+): { [P in keyof InstaQLEntity<AppSchema, K, { owner: {}, room: {} }>]: P } => {
+	// Get regular fields
+	const fields = Object.keys(_schema.entities[entityName].attrs);
+
+	// Get relation fields by checking links
+	const relationFields = Object.entries(_schema.links)
+		.filter(([_, link]) => link.forward.on === entityName)
+		.map(([_, link]) => `${link.forward.label}Id`);
+
+	// Combine both regular and relation fields
+	return [...fields, ...relationFields].reduce(
+		(acc, key) => ({ ...acc, [key]: key }),
+		{} as { [P in keyof InstaQLEntity<AppSchema, K, { owner: {}, room: {} }>]: P },
+	);
+};
+
+// Value, but not key, transformed to include Id
+// export const getEntityFieldsAndRelations = <K extends keyof AppSchema['entities']>(
+// 	entityName: K,
+// ): { [P in keyof InstaQLEntity<AppSchema, K, { owner: {}, room: {} }>]: P extends 'owner' | 'room' ? `${P}Id` : P } => {
+// 	// Get regular fields
+// 	const fields = Object.keys(_schema.entities[entityName].attrs);
+
+// 	// Get relation fields by checking links
+// 	const relationFields = Object.entries(_schema.links)
+// 		.filter(([_, link]) => link.forward.on === entityName)
+// 		.map(([_, link]) => `${link.forward.label}Id`);
+
+// 	// Combine both regular and relation fields
+// 	return [...fields, ...relationFields].reduce(
+// 		(acc, key) => {
+// 		// Remove 'Id' from the key when looking up the value
+// 			const valueKey = key.endsWith('Id') ? key.slice(0, -2) : key;
+// 			return { ...acc, [key]: valueKey };
+// 		},
+// 		{} as { [P in keyof InstaQLEntity<AppSchema, K, { owner: {}, room: {} }>]: P extends 'owner' | 'room' ? `${P}Id` : P },
+// 	);
+// };
+
+// Key and value transformed to include Id
+// export const getEntityFieldsAndRelations = <K extends keyof AppSchema['entities']>(
+// 	entityName: K,
+// ): { [P in keyof InstaQLEntity<AppSchema, K, { owner: {}, room: {} }>]: P extends 'owner' | 'room' ? `${P}Id` : P } extends infer T ? {
+// 	[P in keyof T as P extends 'owner' | 'room' ? `${P}Id` : P]: T[P]
+// } : never => {
+// 	// Get regular fields
+// 	const fields = Object.keys(_schema.entities[entityName].attrs);
+
+// 	// Get relation fields by checking links
+// 	const relationFields = Object.entries(_schema.links)
+// 		.filter(([_, link]) => link.forward.on === entityName)
+// 		.map(([_, link]) => {
+// 			const label = link.forward.label;
+// 			return { [`${label}Id`]: `${label}Id` };
+// 		})
+// 		.reduce((acc, curr) => ({ ...acc, ...curr }), {});
+
+// 	// Combine both regular and relation fields
+// 	return {
+// 		...Object.keys(fields).reduce((acc, key) => ({ ...acc, [key]: key }), {}),
+// 		...relationFields,
+// 	} as { [P in keyof InstaQLEntity<AppSchema, K, { owner: {}, room: {} }>]: P extends 'owner' | 'room' ? `${P}Id` : P } extends infer T ? {
+// 		[P in keyof T as P extends 'owner' | 'room' ? `${P}Id` : P]: T[P]
+// 	} : never;
+// };
+
 // Test that type inference works
-type ItemOG = InstaQLEntity<AppSchema, 'items'>;
-type ItemModified = ExtendedInstaQLEntity<AppSchema, 'items'>;
+type Item = InstaQLEntity<AppSchema, 'items'>;
+const itemFields = getEntityFieldsAndRelations('items');
+
+// Scratchpad
+// item.owner
+// IDBCustomField with fieldName="owner" will receive id(s) of strings as value, array of all objects as data
+// IDBCustomField can take in a custom list query for all persons to pick from
+// onChange will update the link instead of changing any actual values
