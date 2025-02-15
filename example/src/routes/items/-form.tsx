@@ -8,36 +8,25 @@ import { useRouteId } from '~client/lib/utils';
 import { db, entityNames } from '~client/main';
 import { getEntityFields, IDBField, IDBForm, IDBRelationField } from '~instantdb-react-ui/index';
 
-type Person = InstaQLEntity<typeof schema, 'persons'>;
+type Item = InstaQLEntity<AppSchema, 'items', { room: {} }>;
+type Person = InstaQLEntity<typeof schema, 'persons', { room: {} }>;
 type Room = InstaQLEntity<typeof schema, 'rooms'>;
 const itemFields = getEntityFields(schema, 'items');
 
 function ItemForm({ type, children, ...props }: ReusableFormComponentProps) {
 	const id = useRouteId();
 
-	// Get the room id for the item
-	const roomQuery = db.useQuery({
-		rooms: {
-			$: { where: { 'items.id': id } },
+	const query = {
+		items: {
+			$: { where: { id: id } },
+			room: {},
+			owner: {},
 		},
-	});
-	const roomId = roomQuery.data?.rooms[0]?.id;
-
-	// Build a query that only has people for this room as picker data
-	let query = null;
-	if (roomId) {
-		query = {
-			items: {
-				$: { where: { id: id } },
-				room: {},
-				owner: {},
-			},
-			persons: {
-				$: { where: { 'room.id': roomId } },
-			},
-			rooms: {},
-		} satisfies InstaQLParams<AppSchema>;
-	}
+		persons: {
+			room: {},
+		},
+		rooms: {},
+	} satisfies InstaQLParams<AppSchema>;
 
 	return (
 		<IDBForm id={id} entity={entityNames.items} type={type} query={query} {...props}>
@@ -58,7 +47,7 @@ function ItemForm({ type, children, ...props }: ReusableFormComponentProps) {
 			<IDBRelationField<Room> fieldName="room" setRelationPickerLabel={item => item.name}>
 				<SearchableSelect label="Location (room)" data={[]} />
 			</IDBRelationField>
-			<IDBRelationField<Person> fieldName="owner" setRelationPickerLabel={item => item.name}>
+			<IDBRelationField<Person> fieldName="owner" setRelationPickerLabel={item => item.name} filter={(entity: Item, field) => entity.room!.id === field.room!.id} dependsOn={['room']}>
 				<MultiSelect label="Owner(s)" data={[]} searchable />
 			</IDBRelationField>
 			{children}

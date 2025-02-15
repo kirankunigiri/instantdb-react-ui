@@ -13,6 +13,9 @@ import { createEntityZodSchemaV2 } from './zod';
 interface IDBFormContextProps {
 	form: ReturnType<typeof useForm>
 	relationPickerData: Record<string, any[]>
+	transformedFormValues: Record<string, any>
+	dependencies: Record<string, string[]>
+	defaults: Record<string, any>
 }
 
 export const IDBFormContext = createContext<IDBFormContextProps | null>(null);
@@ -77,9 +80,6 @@ export const IDBForm = memo(function BaseForm(props: IDBFormProps) {
 		validate: zodResolver(zodSchema),
 	});
 
-	// const { fields: formFields, links: formLinks } = processChildren(props.children, form);
-	// console.log(formFields, formLinks);
-
 	// Get relation lists
 	const queryObject = Object.entries(links).reduce((acc, [_, link]) => ({
 		...acc,
@@ -92,6 +92,21 @@ export const IDBForm = memo(function BaseForm(props: IDBFormProps) {
 		...acc,
 		[fieldName]: (dbQuery.data as Record<string, any[]>)?.[link.entityName] || [],
 	}), {} as Record<string, any[]>);
+
+	// Dependency list
+	const { dependencies } = processChildren(props.children, form, [], [], {}, {}, {});
+
+	const transformedFormValues = { ...form.values };
+	for (const [key, value] of Object.entries(transformedFormValues)) {
+		const link = links[key];
+		if (!link) continue;
+
+		if (link.cardinality === 'one') {
+			transformedFormValues[key] = relationPickerData[key].find(item => item.id === value);
+		} else if (link.cardinality === 'many') {
+			transformedFormValues[key] = relationPickerData[key].filter(item => value.includes(item.id));
+		}
+	}
 
 	// Handle form change
 	const { onFormChange } = props;
@@ -115,15 +130,22 @@ export const IDBForm = memo(function BaseForm(props: IDBFormProps) {
 		);
 	};
 
-	const contextValue = useMemo(() => ({
+	// const contextValue = useMemo(() => ({
+	// 	form,
+	// 	relationPickerData,
+	// }), [form, relationPickerData]);
+	const contextValue = {
 		form,
 		relationPickerData,
-	}), [form, relationPickerData]);
+		transformedFormValues,
+		dependencies,
+		defaults,
+	};
 
 	return (
 		<IDBFormContext.Provider value={contextValue}>
 			<form onSubmit={handleSubmit} className={props.className || ''}>
-				{props.type === 'update' && <UpdateForm {...props} form={form} relationPickerData={relationPickerData} />}
+				{props.type === 'update' && <UpdateForm {...props} form={form} relationPickerData={relationPickerData} query={props.query} />}
 				{props.children}
 			</form>
 		</IDBFormContext.Provider>
@@ -170,28 +192,6 @@ function UpdateForm(props: UpdateFormProps) {
 				}
 				return acc;
 			}, { ...item });
-
-			// Filter out invalid relation values
-			// Example: If dev passes in a filter for a relation data picker, but the current values are not in that list, we should remove them
-			for (const [key, link] of Object.entries(links)) {
-				if (link.cardinality === 'many') {
-					// For many cardinality, newFormData[key] is an array of IDs. filter out any IDs that don't exist in the relation picker data
-					const linkValue = newFormData[key] as string[];
-					const validIds = linkValue.filter((id: string) =>
-						props.relationPickerData[key].some(rel => rel.id === id),
-					);
-					if (validIds.length > 0) {
-						newFormData[key] = validIds;
-					} else {
-						newFormData[key] = [];
-					}
-				} else if (link.cardinality === 'one') {
-					// For single cardinality, the value is a string id.
-					if (!props.relationPickerData[key].some(rel => rel.id === newFormData[key])) {
-						newFormData[key] = '';
-					}
-				}
-			}
 
 			props.form.setValues(newFormData);
 			props.form.resetDirty();
@@ -276,22 +276,66 @@ function processChildren(
 	form: ReturnType<typeof useForm>,
 	fields: string[] = [],
 	links: string[] = [],
-): { fields: string[], links: string[] } {
-	if (!isValidElement(element)) return { fields, links };
+	filters: Record<string, (entity: Record<string, any>, field: any) => boolean> = {},
+	relationPickerQueries: Record<string, Record<string, any>> = {},
+	dependencies: Record<string, string[]> = {},
+): { fields: string[], links: string[], filters: Record<string, (entity: Record<string, any>, field: any) => boolean>, relationPickerQueries: Record<string, Record<string, any>>, dependencies: Record<string, string[]> } {
+	// Handle array of elements
+	if (Array.isArray(element)) {
+		element.forEach((child) => {
+			const result = processChildren(child, form, fields, links, filters, relationPickerQueries, dependencies);
+			fields = result.fields;
+			links = result.links;
+			filters = result.filters;
+			relationPickerQueries = result.relationPickerQueries;
+		});
+		return { fields, links, filters, relationPickerQueries, dependencies };
+	}
+
+	// Handle single element
+	if (!isValidElement(element)) {
+		return { fields, links, filters, relationPickerQueries, dependencies };
+	}
 
 	// Check if this is an IDBField component
 	if (typeof element.type === 'function' && element.type.displayName === IDBField.displayName) {
-		const newElement = element as React.ReactElement<{ fieldName: string }>;
+		const newElement = element as React.ReactElement<{ fieldName: string, dependsOn?: string[] }>;
 		if (newElement.props.fieldName) {
 			fields.push(newElement.props.fieldName);
+			// Add dependencies if they exist
+			if (newElement.props.dependsOn) {
+				newElement.props.dependsOn.forEach((dependency) => {
+					dependencies[dependency] = dependencies[dependency] || [];
+					if (!dependencies[dependency].includes(newElement.props.fieldName)) {
+						dependencies[dependency].push(newElement.props.fieldName);
+					}
+				});
+			}
 		}
 	}
 
 	// Check if this is an IDBRelationField component
 	if (typeof element.type === 'function' && element.type.displayName === IDBRelationField.displayName) {
-		const newElement = element as React.ReactElement<IDBRelationFieldProps<any>>;
+		const newElement = element as React.ReactElement<IDBRelationFieldProps<any> & { dependsOn?: string[] }>;
 		if (newElement.props.fieldName) {
 			links.push(newElement.props.fieldName);
+			// Add filter function if it exists
+			if (newElement.props.filter) {
+				filters[newElement.props.fieldName] = newElement.props.filter;
+			}
+			// Add relation picker query if it exists
+			if (newElement.props.relationPickerQuery) {
+				relationPickerQueries[newElement.props.fieldName] = newElement.props.relationPickerQuery;
+			}
+			// Add dependencies if they exist
+			if (newElement.props.dependsOn) {
+				newElement.props.dependsOn.forEach((dependency) => {
+					dependencies[dependency] = dependencies[dependency] || [];
+					if (!dependencies[dependency].includes(newElement.props.fieldName)) {
+						dependencies[dependency].push(newElement.props.fieldName);
+					}
+				});
+			}
 		}
 	}
 
@@ -299,11 +343,14 @@ function processChildren(
 	const children = (element.props as any).children as ReactNode;
 	if (children) {
 		React.Children.forEach(children, (child) => {
-			const result = processChildren(child, form, fields, links);
+			const result = processChildren(child, form, fields, links, filters, relationPickerQueries, dependencies);
 			fields = result.fields;
 			links = result.links;
+			filters = result.filters;
+			relationPickerQueries = result.relationPickerQueries;
+			dependencies = result.dependencies;
 		});
 	}
 
-	return { fields, links };
+	return { fields, links, filters, relationPickerQueries, dependencies };
 }
