@@ -1,3 +1,5 @@
+// eslint-disable-next-line simple-import-sort/imports
+import { scan } from 'react-scan';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import '~client/index.css';
@@ -18,6 +20,10 @@ import { createRoot } from 'react-dom/client';
 import schema from '~client/db/instant.schema';
 import { routeTree } from '~client/routeTree.gen';
 import { getEntityNames, IDBReactUIProvider } from '~instantdb-react-ui/index';
+
+// scan({
+// 	enabled: true,
+// });
 
 // --------------------------------------------------------------------------------
 // InstantDB Setup

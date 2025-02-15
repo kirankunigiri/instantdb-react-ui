@@ -94,7 +94,7 @@ export const IDBForm = memo(function BaseForm(props: IDBFormProps) {
 	}), {} as Record<string, any[]>);
 
 	// Dependency list
-	const { dependencies } = processChildren(props.children, form, [], [], {}, {}, {});
+	const dependencies = useMemo(() => processChildren(props.children, form, [], [], {}, {}, {}).dependencies, [props.children]);
 
 	const transformedFormValues = { ...form.values };
 	for (const [key, value] of Object.entries(transformedFormValues)) {
@@ -177,6 +177,8 @@ function UpdateForm(props: UpdateFormProps) {
 		},
 	};
 	const dbQuery = db.useQuery(props.query || queryObject);
+	console.log(dbQuery);
+
 	const item = dbQuery.data?.[props.entity]?.[0];
 
 	// Set initial form data

@@ -23,9 +23,12 @@ function ItemForm({ type, children, ...props }: ReusableFormComponentProps) {
 			owner: {},
 		},
 		persons: {
+			$: { order: { name: 'asc' } },
 			room: {},
 		},
-		rooms: {},
+		rooms: {
+			// $: { order: { name: 'asc' } },
+		},
 	} satisfies InstaQLParams<AppSchema>;
 
 	return (

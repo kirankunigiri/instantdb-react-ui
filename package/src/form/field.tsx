@@ -101,14 +101,14 @@ export function IDBRelationField<T extends IDBEntity>({ fieldName, children, ren
 
 		// Clear dependencies when this field changes
 		const inputProps = form.getInputProps(fieldName);
-		const customOnChange = (value: any) => {
-			if (dependencies[fieldName] && dependencies[fieldName].length > 0) {
-				dependencies[fieldName].forEach((dep) => {
-					form.setFieldValue(dep, defaults[dep]);
-				});
-			}
-			inputProps.onChange(value);
-		};
+		// const customOnChange = (value: any) => {
+		// 	if (dependencies[fieldName] && dependencies[fieldName].length > 0) {
+		// 		dependencies[fieldName].forEach((dep) => {
+		// 			form.setFieldValue(dep, defaults[dep]);
+		// 		});
+		// 	}
+		// 	inputProps.onChange(value);
+		// };
 
 		return cloneElement(renderElement, {
 			...(renderElement.props as any),
@@ -116,7 +116,7 @@ export function IDBRelationField<T extends IDBEntity>({ fieldName, children, ren
 			key: form.key(fieldName),
 			data,
 			disabled,
-			onChange: customOnChange,
+			// onChange: customOnChange,
 		});
 	}, [renderElement, fieldName, form, relationPickerData, dependsOn]);
 }

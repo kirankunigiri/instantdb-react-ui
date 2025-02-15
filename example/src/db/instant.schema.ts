@@ -51,7 +51,7 @@ const _schema = i.schema({
 				() => z.number().min(new Date('2020-01-01').getTime()).default(Date.now)),
 		}),
 		rooms: i.entity({
-			name: i.string(),
+			name: i.string().indexed(),
 			description: i.string(),
 			testDefaultValue: i.string(),
 		}),
@@ -88,8 +88,29 @@ export default schema;
 // Test that type inference works
 type Item = InstaQLEntity<AppSchema, 'items'>;
 
-// Scratchpad
-// item.owner
-// IDBField with fieldName="owner" will receive id(s) of strings as value, array of all objects as data
-// IDBField can take in a custom list query for all persons to pick from
-// onChange will update the link instead of changing any actual values
+type EntityFields<Schema extends { entities: any }, T extends keyof Schema['entities']> =
+    Record<
+    	keyof (typeof _schema['entities'][T]['attrs'] &
+    	  typeof _schema['entities'][T]['links']),
+    	string
+    >;
+
+function getEntities<Schema extends { entities: any }>(schema: Schema) {
+	return Object.fromEntries(
+		Object.keys(schema.entities).map(entityName => [
+			entityName,
+			Object.fromEntries(
+				[...Object.keys(schema.entities[entityName].attrs),
+					...Object.keys(schema.entities[entityName].links)]
+					.map(key => [key, key]),
+			),
+		]),
+	) as {
+		[K in keyof Schema['entities']]: EntityFields<Schema, K>
+	};
+}
+
+// Example usage:
+const AllEntities = getEntities(_schema);
+console.log(AllEntities.items.owner);
+console.log(AllEntities.rooms.description);
