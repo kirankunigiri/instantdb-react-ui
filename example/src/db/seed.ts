@@ -16,8 +16,23 @@ const nameToEmail = (name: string) => {
 	return `${name.toLowerCase().replaceAll(' ', '.')}@fakemail.com`;
 };
 
+const seedRooms = async () => {
+	const rooms = [];
+	const roomNames = ['Room A', 'Room B', 'Room C', 'Room D'];
+
+	for (const name of roomNames) {
+		rooms.push(db.tx.rooms[id()]!.update({ name }));
+	}
+
+	await db.transact(rooms);
+	console.log(`Created ${roomNames.length} rooms`);
+};
+
 // Seed 100 people
-export const seedPeople = async () => {
+const seedPeople = async () => {
+	const rooms = await db.query({ rooms: {} });
+	const roomIds = rooms!.rooms.map(r => r.id);
+
 	try {
 		const totalPeople = 100;
 		const people = [];
@@ -28,7 +43,7 @@ export const seedPeople = async () => {
 				db.tx.persons[id()]!.update({
 					name,
 					email: nameToEmail(name),
-				}),
+				}).link({ room: roomIds[i % roomIds.length] }),
 			);
 		}
 
@@ -41,13 +56,15 @@ export const seedPeople = async () => {
 };
 
 // Delete all people
-export const deleteAllPeople = async () => {
-	const data = await db.query({ persons: {} });
-	const { persons } = data!;
+export const resetDB = async () => {
+	const data = await db.query({ persons: {}, rooms: {} });
+	const { persons, rooms } = data!;
 	db.transact(persons.map(p => db.tx.persons[p.id]!.delete()));
-	console.log(`Deleted ${persons.length} people`);
+	db.transact(rooms.map(r => db.tx.rooms[r.id]!.delete()));
+	console.log(`Deleted ${persons.length} people and ${rooms.length} rooms`);
 };
 
 // Seed the database
-await deleteAllPeople();
+await resetDB();
+await seedRooms();
 await seedPeople();

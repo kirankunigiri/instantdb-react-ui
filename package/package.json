@@ -30,10 +30,8 @@
 	"author": "Kiran Kunigiri",
 	"license": "MIT",
 	"peerDependencies": {
-		"@instantdb/core": "^0.17.0",
 		"@instantdb/react": "^0.17.0",
 		"@mantine/form": "^7.0.0",
-		"@mantine/hooks": "^7.0.0",
 		"mantine-form-zod-resolver": "^1.0.0",
 		"react": ">=18.0.0",
 		"zod": "^3.0.0"

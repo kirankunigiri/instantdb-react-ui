@@ -1,11 +1,15 @@
+import { InstaQLEntity } from '@instantdb/react';
 import { TextInput } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 
-import { entityNames } from '~client/db/instant.schema';
+import { AppSchema } from '~client/db/instant.schema';
 import List from '~client/lib/list/list';
 import { ListHeader } from '~client/lib/list/list-header';
 import { OutletWrapper } from '~client/lib/outlet-wrapper';
+import { entityNames } from '~client/main';
 import ItemForm from '~client/routes/items/-form';
+
+type Item = InstaQLEntity<AppSchema, 'items'>;
 
 export const Route = createFileRoute('/items')({
 	component: ItemList,

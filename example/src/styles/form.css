@@ -1,4 +1,6 @@
 form {
+	@apply flex flex-col gap-1;
+	
 	.mantine-Checkbox-root {
 		@apply my-2;
 	}

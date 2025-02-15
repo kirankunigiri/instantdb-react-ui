@@ -1,15 +1,15 @@
 import { InstaQLEntity } from '@instantdb/react';
-import { Pagination, SegmentedControl, Space, TextInput } from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
+import { Pagination, ScrollArea, SegmentedControl, Space, TextInput } from '@mantine/core';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
-import { AppSchema, entityNames } from '~client/db/instant.schema';
+import { AppSchema } from '~client/db/instant.schema';
 import List from '~client/lib/list/list';
 import { ListHeader } from '~client/lib/list/list-header';
 import { OutletWrapper } from '~client/lib/outlet-wrapper';
-import { type IDBQuery } from '~client/main';
+import { entityNames, type IDBQuery } from '~client/main';
 import PersonForm from '~client/routes/people/-form';
-import { useIDBPagination } from '~instantdb-react-ui/index';
+import { IDBList, useIDBPagination } from '~instantdb-react-ui/index';
 
 type Person = InstaQLEntity<AppSchema, 'persons'>;
 
@@ -22,6 +22,7 @@ type ListMode = 'normal' | 'infinite' | 'paginated';
 function PersonList() {
 	const params = Route.useParams() as { id?: number };
 
+	// TODO: replace with instantdb utility types
 	const personQuery: IDBQuery = {
 		persons: {
 			$: {
@@ -73,20 +74,36 @@ function PersonList() {
 
 				<Space h="sm" />
 
-				{/* List */}
+				{/* All list types */}
 				{/* List - Normal */}
 				{listMode === 'normal' && (
-					<List<Person>
-						mode="normal"
-						entity={entityNames.persons}
-						query={personQuery}
-						route="/people/$id"
-						itemId={params.id}
-						// search={search}
-						render={person => (
-							<p className="text-sm">{person.name}</p>
-						)}
-					/>
+
+				// wrapper version
+				// <List<Person>
+				// 	mode="normal"
+				// 	entity={entityNames.persons}
+				// 	query={personQuery}
+				// 	route="/people/$id"
+				// 	itemId={params.id}
+				// 	// search={search}
+				// 	render={person => (
+				// 		<p className="text-sm">{person.name}</p>
+				// 	)}
+				// />
+
+					// from scratch version
+					<div className="list-scrollarea overflow-y-scroll">
+						<IDBList<Person>
+							mode="normal"
+							entity={entityNames.persons}
+							query={personQuery}
+							render={(person, id) => (
+								<Link data-selected={params.id === id} className="list-item" to="/people/$id" params={{ id: person.id }}>
+									<p className="text-sm">{person.name}</p>
+								</Link>
+							)}
+						/>
+					</div>
 				)}
 
 				{/* List - Infinite */}

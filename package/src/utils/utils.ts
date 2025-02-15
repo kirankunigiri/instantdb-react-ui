@@ -1,8 +1,54 @@
-import { useCallback } from 'react';
-import { useState } from 'react';
-import { useRef } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { DataAttrDef, LinkAttrDef } from '@instantdb/react';
+import { useCallback, useRef, useState } from 'react';
+import { z, ZodTypeAny } from 'zod';
 
 import { IDBFormState } from '../form/form';
+
+/** Add a zod transform to an attribute definition in an instant schema */
+export const addZod = <T extends DataAttrDef<any, any>>(
+	input: T,
+	zodTransform: () => ZodTypeAny,
+): T & { _zodTransform: () => ZodTypeAny } => {
+	return {
+		...input,
+		_zodTransform: zodTransform,
+	};
+};
+
+export const makeLinkRequired = <T extends LinkAttrDef<any, any>>(
+	input: T,
+	message?: string,
+) => {
+	const zodMessage = message || 'This relation is required';
+	if (input.cardinality === 'one') {
+		input['_zodTransform'] = () => z.string().min(1, { message: zodMessage });
+	} else {
+		input['_zodTransform'] = () => z.string().array().min(1, { message: zodMessage });
+	}
+};
+
+/** Get all entity names from the schema */
+export const getEntityNames = <T extends { entities: Record<string, unknown> }>(
+	schema: T,
+) => Object.keys(schema.entities).reduce(
+	(acc, key) => ({ ...acc, [key]: key }),
+	{} as { [K in keyof T['entities']]: K },
+);
+
+/** Get all fields for a specific entity */
+export const getEntityFields = <
+	TSchema extends { entities: Record<string, { attrs: Record<string, unknown> }> },
+	TEntity extends string,
+>(
+	schema: TSchema,
+	entityName: TEntity & keyof TSchema['entities'],
+): { [P in keyof TSchema['entities'][TEntity]['attrs']]: P } => {
+	return Object.keys(schema.entities[entityName].attrs).reduce(
+		(acc, key) => ({ ...acc, [key]: key }),
+		{} as { [P in keyof TSchema['entities'][TEntity]['attrs']]: P },
+	);
+};
 
 /** This hook will automatically re-render your parent component when the IDBForm state changes */
 export const useIDBFormState = () => {

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { AttrsDefs, EntityDef, LinkAttrDef } from '@instantdb/react';
 import { z } from 'zod';
 
 /**
@@ -39,6 +40,72 @@ function getDefaultValueByType(valueType: string): any {
 	// Use empty string for for unknown types
 	if (defaultValue === undefined) return '';
 	return typeof defaultValue === 'function' ? defaultValue() : defaultValue;
+}
+
+type BasicEntity = EntityDef<AttrsDefs, Record<string, LinkAttrDef<any, any>>, void>;
+
+/** Creates a zod schema and default values for useForm's initialValues parameter */
+export function createEntityZodSchemaV2(entity: BasicEntity): {
+	zodSchema: z.ZodObject<any>
+	defaults: Record<string, any>
+} {
+	const entityAttrs = entity.attrs;
+	const schemaObj: Record<string, z.ZodType> = {};
+	const defaults: Record<string, any> = {};
+
+	Object.entries(entityAttrs).forEach(([key, attr]) => {
+		// Safely check and execute _zodTransform
+		const transform = (attr as any)._zodTransform;
+		let fieldSchema: z.ZodType;
+
+		if (transform && typeof transform === 'function') {
+			try {
+				fieldSchema = transform();
+				// Extract default if it exists from Zod schema
+				if ('_def' in fieldSchema && 'defaultValue' in fieldSchema._def) {
+					const defaultValue = fieldSchema._def.defaultValue;
+					defaults[key] = typeof defaultValue === 'function' ? defaultValue() : defaultValue;
+				} else {
+					// If no Zod default, use valueType default
+					defaults[key] = getDefaultValueByType(attr.valueType);
+				}
+			} catch (e) {
+				// fallback to default schema
+				fieldSchema = getDefaultSchema(attr.valueType);
+				defaults[key] = getDefaultValueByType(attr.valueType);
+			}
+		} else {
+			// fallback to default schema
+			fieldSchema = getDefaultSchema(attr.valueType);
+			defaults[key] = getDefaultValueByType(attr.valueType);
+		}
+
+		schemaObj[key] = fieldSchema;
+	});
+
+	// Add zod schema for links
+	Object.entries(entity.links).forEach(([key, link]) => {
+		if (link.cardinality === 'one') {
+			defaults[key] = '';
+			if (link._zodTransform) {
+				schemaObj[key] = link._zodTransform();
+			} else {
+				schemaObj[key] = z.string();
+			}
+		} else {
+			defaults[key] = [];
+			if (link._zodTransform) {
+				schemaObj[key] = link._zodTransform();
+			} else {
+				schemaObj[key] = z.array(z.string());
+			}
+		}
+	});
+
+	return {
+		zodSchema: z.object(schemaObj),
+		defaults,
+	};
 }
 
 /** Creates a zod schema and default values for useForm's initialValues parameter */

@@ -2,8 +2,8 @@ import { useForm, zodResolver } from '@mantine/form';
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 
-import { entityNames } from '~client/db/instant.schema';
 import { DetailHeader } from '~client/lib/detail-header';
+import { entityNames } from '~client/main';
 import PersonForm from '~client/routes/people/-form';
 
 export const Route = createFileRoute('/people/$id')({

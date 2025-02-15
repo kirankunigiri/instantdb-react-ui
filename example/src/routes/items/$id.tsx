@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { entityNames } from '~client/db/instant.schema';
 import { DetailHeader } from '~client/lib/detail-header';
+import { entityNames } from '~client/main';
 import ItemForm from '~client/routes/items/-form';
 
 export const Route = createFileRoute('/items/$id')({

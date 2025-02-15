@@ -1,11 +1,16 @@
-import { TextInput } from '@mantine/core';
+import { InstaQLEntity } from '@instantdb/react';
+import { MultiSelect, TextInput } from '@mantine/core';
 
-import { entityNames, getEntityFields } from '~client/db/instant.schema';
+import schema from '~client/db/instant.schema';
 import { ReusableFormComponentProps } from '~client/lib/components/components';
+import { SearchableSelect } from '~client/lib/components/searchable-select';
 import { useRouteId } from '~client/lib/utils';
-import { IDBField, IDBForm } from '~instantdb-react-ui/form/form';
+import { entityNames } from '~client/main';
+import { IDBForm } from '~instantdb-react-ui/form/form';
+import { getEntityFields, IDBField, IDBRelationField } from '~instantdb-react-ui/index';
 
-const personFields = getEntityFields(entityNames.persons);
+type Room = InstaQLEntity<typeof schema, 'rooms'>;
+const personFields = getEntityFields(schema, 'persons');
 
 function PersonForm({ type, children, ...props }: ReusableFormComponentProps) {
 	const id = useRouteId();
@@ -18,6 +23,9 @@ function PersonForm({ type, children, ...props }: ReusableFormComponentProps) {
 			<IDBField fieldName={personFields.email}>
 				<TextInput label="Email" />
 			</IDBField>
+			<IDBRelationField<Room> fieldName="room" setRelationPickerLabel={item => item.name}>
+				<SearchableSelect label="Room" data={[]} />
+			</IDBRelationField>
 			{children}
 		</IDBForm>
 	);

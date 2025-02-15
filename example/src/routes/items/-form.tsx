@@ -1,43 +1,66 @@
-import { TextInput } from '@mantine/core';
+import { InstaQLEntity, InstaQLParams } from '@instantdb/react';
+import { MultiSelect, TextInput } from '@mantine/core';
 
-import { entityNames, getEntityFields, ITEM_CATEGORY } from '~client/db/instant.schema';
+import schema, { AppSchema, ITEM_CATEGORY } from '~client/db/instant.schema';
 import { CheckboxWrapper, DateInputWrapper, ReusableFormComponentProps } from '~client/lib/components/components';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
 import { useRouteId } from '~client/lib/utils';
-import { db } from '~client/main';
-import { IDBField, IDBForm } from '~instantdb-react-ui/form/form';
+import { db, entityNames } from '~client/main';
+import { getEntityFields, IDBField, IDBForm, IDBRelationField } from '~instantdb-react-ui/index';
 
-const itemFields = getEntityFields(entityNames.items);
+type Person = InstaQLEntity<typeof schema, 'persons'>;
+type Room = InstaQLEntity<typeof schema, 'rooms'>;
+const itemFields = getEntityFields(schema, 'items');
 
 function ItemForm({ type, children, ...props }: ReusableFormComponentProps) {
 	const id = useRouteId();
 
-	const relationsQuery = db.useQuery({
-		items: {
-			$: { where: { id } },
-			rooms: {},
-			owner: {},
+	// Get the room id for the item
+	const roomQuery = db.useQuery({
+		rooms: {
+			$: { where: { 'items.id': id } },
 		},
 	});
-	console.log(relationsQuery.data);
+	const roomId = roomQuery.data?.rooms[0]?.id;
+
+	// Build a query that only has people for this room as picker data
+	let query = null;
+	if (roomId) {
+		query = {
+			items: {
+				$: { where: { id: id } },
+				room: {},
+				owner: {},
+			},
+			persons: {
+				$: { where: { 'room.id': roomId } },
+			},
+			rooms: {},
+		} satisfies InstaQLParams<AppSchema>;
+	}
 
 	return (
-		<IDBForm id={id} entity={entityNames.items} type={type} {...props}>
-			<IDBField fieldName="name">
-				<TextInput label="Name" />
-			</IDBField>
-			<IDBField fieldName={itemFields.shareable}>
-				<CheckboxWrapper label="Shareable" />
-			</IDBField>
+		<IDBForm id={id} entity={entityNames.items} type={type} query={query} {...props}>
+
+			{/* Example using render prop */}
+			<IDBField fieldName={itemFields.name} render={<TextInput label="Name" />} />
+			<IDBField fieldName={itemFields.shareable} render={<CheckboxWrapper label="Shareable" />} />
+
+			{/* Examples using children prop */}
 			<IDBField fieldName={itemFields.category}>
 				<SearchableSelect label="Category" data={Object.values(ITEM_CATEGORY).map(category => ({ label: category, value: category }))} />
 			</IDBField>
 			<IDBField fieldName={itemFields.date}>
-				<DateInputWrapper label="Date" />
+				<DateInputWrapper label="Date Added" />
 			</IDBField>
-			{/* <IDBField fieldName="owner">
-				<SearchableSelect label="Owner" />
-			</IDBField> */}
+
+			{/* Relation field examples */}
+			<IDBRelationField<Room> fieldName="room" setRelationPickerLabel={item => item.name}>
+				<SearchableSelect label="Location (room)" data={[]} />
+			</IDBRelationField>
+			<IDBRelationField<Person> fieldName="owner" setRelationPickerLabel={item => item.name}>
+				<MultiSelect label="Owner(s)" data={[]} searchable />
+			</IDBRelationField>
 			{children}
 		</IDBForm>
 	);

@@ -5,7 +5,7 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import { useIDBReactUIProvider } from '../utils/provider';
 
 interface BaseListProps<T> {
-	render: (item: T, id: string | number) => ReactNode
+	render: (item: T, id: string) => ReactNode
 	skeleton?: ReactNode
 	noResults?: ReactNode
 }
