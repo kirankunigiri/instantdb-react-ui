@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { InstantCoreDatabase } from '@instantdb/core';
 import { InstantReactWebDatabase, InstantSchemaDef } from '@instantdb/react';
 import { createContext, useContext } from 'react';
 
@@ -26,5 +27,33 @@ export function IDBReactUIProvider({ db, schema, children }: IDBReactUIProviderP
 		<IDBReactUIContext.Provider value={{ db, schema }}>
 			{children}
 		</IDBReactUIContext.Provider>
+	);
+}
+
+// NEW
+export interface NewReactConfig {
+	db: InstantCoreDatabase<InstantSchemaDef<any, any, any>>
+	schema: InstantSchemaDef<any, any, any>
+}
+
+const NewReactContext = createContext<NewReactConfig | null>(null);
+
+export function useNewReactContext() {
+	const context = useContext(NewReactContext);
+	if (!context) {
+		throw new Error('instantdb-ui components must be used within an NewFormContext');
+	}
+	return context;
+}
+
+interface NewReactProviderProps extends NewReactConfig {
+	children: React.ReactNode
+}
+
+export function NewFormProvider({ db, schema, children }: NewReactProviderProps) {
+	return (
+		<NewReactContext.Provider value={{ db, schema }}>
+			{children}
+		</NewReactContext.Provider>
 	);
 }

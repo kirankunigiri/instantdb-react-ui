@@ -61,7 +61,7 @@ export default tseslint.config(
 
 			// React
 			'react/react-in-jsx-scope': 'off',
-
+			'react/no-children-prop': 'off',
 			// Simple Import Sort
 			'simple-import-sort/imports': 'error',
 			'simple-import-sort/exports': 'error',

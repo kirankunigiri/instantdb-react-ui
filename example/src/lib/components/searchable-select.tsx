@@ -17,7 +17,7 @@ interface SelectValue {
 	value: BaseValue
 }
 
-interface SearchableSelectProps {
+export interface SearchableSelectProps {
 	data: SelectValue[]
 	value?: BaseValue | null
 	onChange?: (value: BaseValue | null) => void

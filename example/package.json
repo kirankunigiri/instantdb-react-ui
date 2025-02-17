@@ -9,14 +9,17 @@
 		"deploy": "vite build && bun wrangler pages deploy"
 	},
 	"dependencies": {
+		"@instantdb/core": "^0.17.15",
 		"@instantdb/react": "^0.17.12",
 		"@mantine/core": "^7.16.3",
 		"@mantine/dates": "^7.16.3",
 		"@mantine/form": "^7.14.3",
 		"@mantine/hooks": "^7.16.3",
 		"@mantine/modals": "^7.14.3",
+		"@tanstack/react-form": "^0.42.0",
 		"@tanstack/router-devtools": "^1.102.3",
 		"@tanstack/router-plugin": "^1.102.4",
+		"@tanstack/zod-form-adapter": "^0.42.0",
 		"@types/node": "^22.13.1",
 		"dayjs": "^1.11.13",
 		"instantdb-react-ui": "workspace:*",

@@ -111,6 +111,4 @@ function getEntities<Schema extends { entities: any }>(schema: Schema) {
 }
 
 // Example usage:
-const AllEntities = getEntities(_schema);
-console.log(AllEntities.items.owner);
-console.log(AllEntities.rooms.description);
+export const AllEntities = getEntities(_schema);

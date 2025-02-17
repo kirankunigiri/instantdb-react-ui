@@ -63,7 +63,7 @@ interface EntityLink {
 	entityName: string
 	cardinality: 'one' | 'many'
 }
-type EntityLinks = Record<string, EntityLink>;
+export type EntityLinks = Record<string, EntityLink>;
 
 export const IDBForm = memo(function BaseForm(props: IDBFormProps) {
 	const { db, schema } = useIDBReactUIProvider();
