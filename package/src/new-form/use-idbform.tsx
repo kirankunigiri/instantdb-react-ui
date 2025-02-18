@@ -2,51 +2,38 @@
 import { IContainEntitiesAndLinks } from '@instantdb/core/dist/module/schemaTypes';
 import { EntitiesDef, InstaQLParams, InstaQLResult } from '@instantdb/react';
 import { FieldApi, FormOptions, formOptions, useForm } from '@tanstack/react-form';
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { EntityLinks } from '..';
-import { createEntityZodSchemaV2, createEntityZodSchemaV3 } from '../form/zod';
-import { NewFormProvider, useNewReactContext } from '../utils/provider';
+import { createEntityZodSchemaV3 } from '../form/zod';
+import { useNewReactContext } from '../utils/provider';
 
 interface InstantValue {
 	id: string
 }
 
-type ConvertedLinksToStrings<
-	T,
-	Links extends EntityLinks,
-> = {
-	[K in keyof T]: K extends keyof Links
-		? Links[K]['cardinality'] extends 'one'
-			? string
-			: string[]
-		: T[K]
-};
-
-// TODO: Allow all original form options from tanstack useForm
-// TODO: move query up to args
-// TODO: Make query optional and use the entity schema to create a default query
 export function useIDBForm<
 	Schema extends IContainEntitiesAndLinks<EntitiesDef, any>,
 	T extends keyof Schema['entities'],
 	Q extends InstaQLParams<Schema>,
+	LQ extends Partial<Record<keyof Schema['entities'][T]['links'], InstaQLParams<Schema>>>, // ideally, we should limit this to only links that were in the query, but for now we allow all links
 >(
-	schema: Schema,
-	entity: T,
-	options: {
-		debounceValues?: Partial<Record<keyof (NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never), number>>
-		defaultValues?: Partial<NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never>
+	options: Omit<FormOptions<NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never>, 'defaultValues'> & {
+		schema: Schema
+		entity: T
 		query: Q
-		formOptions?: FormOptions<NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never>
+		linkPickerQueries?: LQ
+		debounceFields?: Partial<Record<keyof (NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never), number>>
+		defaultValues?: Partial<NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never>
 	},
 ) {
 	console.log('running useIDBForm');
 
 	type FormData = NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never;
-	const entityName = entity as string;
+	const entityName = options.entity as string;
 
 	// Use the extracted function to create schema and get defaults
-	const { zodSchema, defaults: zodDefaults } = createEntityZodSchemaV3(schema.entities[entityName]);
+	const { zodSchema, defaults: zodDefaults } = createEntityZodSchemaV3(options.schema.entities[entityName]);
 
 	// Merge default values from options with zod defaults
 	// TODO: Test with create form
@@ -55,10 +42,16 @@ export function useIDBForm<
 	}
 
 	const { db } = useNewReactContext();
-	const links = schema.entities[entity as string].links as EntityLinks;
+	const links = options.schema.entities[options.entity as string].links as EntityLinks;
 
 	const formOpts = formOptions<FormData>({
-		defaultValues: zodDefaults as FormData,
+		...(() => {
+			const { schema, entity, query, debounceFields, ...rest } = options;
+			return {
+				...rest,
+				defaultValues: zodDefaults, // replaces defaultValues with the merged zodDefaults
+			} as FormOptions<FormData>;
+		})(),
 	});
 
 	const form = useForm({
@@ -68,12 +61,6 @@ export function useIDBForm<
 		},
 	});
 
-	// useLayoutEffect(() => {
-	// 	for (const [fieldName, link] of Object.entries(links)) {
-	// 		form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, data: [] }));
-	// 	}
-	// }, []);
-
 	useEffect(() => {
 		// Main entity query
 		db.subscribeQuery(options.query, (resp) => {
@@ -82,7 +69,7 @@ export function useIDBForm<
 				return;
 			}
 			if (resp.data) {
-				const item = (resp.data[entity] as any)?.[0];
+				const item = (resp.data[options.entity] as any)?.[0];
 
 				for (const [fieldName, fieldValue] of Object.entries(item)) {
 					let newValue: any = fieldValue;
@@ -116,22 +103,14 @@ export function useIDBForm<
 			}
 		});
 
-		// Relation queries
+		// Link picker queries
 		for (const [fieldName, link] of Object.entries(links)) {
-			// TODO: Relation query overrides - create a new link query map instead of asking dev to place them in the base query
-			const query = {
+			const linkPickerQuery = options.linkPickerQueries?.[fieldName] || {
 				[link.entityName]: {},
 			};
 
-			const overrideRelationQuery = options.query[link.entityName];
-			if (overrideRelationQuery) {
-				query[link.entityName] = overrideRelationQuery;
-			}
-			// console.log('subscribing to relation query', query);
-
-			db.subscribeQuery(query, (resp) => {
+			db.subscribeQuery(linkPickerQuery, (resp) => {
 				const linkPickerData = resp.data?.[link.entityName] as any[];
-				// console.log(fieldName, 'link picker data', linkPickerData);
 				form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, data: linkPickerData }));
 			});
 		}
@@ -139,14 +118,14 @@ export function useIDBForm<
 
 	// TODO: this is just temporary. later, use an actual debounce library that will run after the user stops typing for a certain amount of time
 	const timeoutRef = useRef<NodeJS.Timeout>();
-	const debouncedTransact = useCallback((callback: () => void) => {
+	const debouncedTransact = useCallback((callback: () => void, delay = 500) => {
 		if (timeoutRef.current) {
 			clearTimeout(timeoutRef.current);
 		}
 
 		timeoutRef.current = setTimeout(() => {
 			callback();
-		}, 500);
+		}, delay);
 	}, []);
 
 	const customOnChange = (field: FieldApi<any, any>, value: any) => {
@@ -189,12 +168,17 @@ export function useIDBForm<
 			if (transactions.length > 0) db.transact(transactions);
 		} else {
 			// Normal field db update
-			// TODO: Only use debounce based on options.debounceValues
-			// debouncedTransact(() => {
-			if (field.state.meta.errors.length === 0) {
-				db.transact(db.tx[entity][id]!.update({ [field.name]: field.state.value }));
+			if (options.debounceFields && Object.keys(options.debounceFields).includes(field.name)) {
+				debouncedTransact(() => {
+					if (field.state.meta.errors.length === 0) {
+						db.transact(db.tx[entityName][id]!.update({ [field.name]: field.state.value }));
+					}
+				}, options.debounceFields[field.name]);
+			} else {
+				if (field.state.meta.errors.length === 0) {
+					db.transact(db.tx[entityName][id]!.update({ [field.name]: field.state.value }));
+				}
 			}
-			// });
 		}
 	};
 
@@ -221,15 +205,6 @@ export function useIDBForm<
 
 	return form;
 }
-
-// export interface IDBFieldMeta {
-// 	/** This is a custom function that is used to update the field value */
-// 	handleChange: (e: any) => void
-// 	/** Whether the field has been synced with the database. Only for debounced fields, which don't update immediately */
-// 	synced: boolean
-// 	/** Data for the relation picker */
-// 	data: any[]
-// }
 
 export interface IDBFieldMeta<T = any> {
 	/** This is a custom function that is used to update the field value */

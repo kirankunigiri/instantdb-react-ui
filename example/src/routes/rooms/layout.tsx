@@ -9,6 +9,10 @@ import { SearchableSelect, SearchableSelectProps } from '~client/lib/components/
 import { db } from '~client/main';
 import { useIDBForm } from '~instantdb-react-ui/new-form/use-idbform';
 
+export const Route = createFileRoute('/rooms')({
+	component: RouteComponent,
+});
+
 const itemId = 'c62637e9-2ba1-4f63-a74f-a06986596913';
 const personId = '0060585b-d673-4b2b-ab13-a1c013fff617';
 
@@ -17,40 +21,60 @@ const personId = '0060585b-d673-4b2b-ab13-a1c013fff617';
 // TODO: allow default value override like here
 
 function TypedForm() {
-	const itemForm = useIDBForm(schema, 'items', {
-		defaultValues: {
-			name: '',
-			shareable: true,
-			category: ITEM_CATEGORY.Other,
-		},
-		debounceValues: {
-			shareable: 100,
-		},
+	const itemForm = useIDBForm({
+		schema,
+		entity: 'items',
 		query: {
 			items: { room: {}, owner: { room: {} }, $: { where: { id: itemId } } },
-		} },
-	);
-
-	// const personForm = useIDBForm(schema, 'persons', {
-	// 	query: { persons: { $: { where: { id: personId } } } },
-	// });
+		},
+		debounceFields: {
+			// name: 2000,
+		},
+		defaultValues: {
+			name: '',
+			shareable: false,
+			category: ITEM_CATEGORY.Other,
+		},
+		linkPickerQueries: {
+			owner: { persons: { $: { limit: 10 } } },
+		},
+	});
 
 	return (
-		<form className="flex flex-col gap-2">
+		<form className="flex flex-col gap-1">
 			<p className="text-lg font-bold">Item Form</p>
 			<itemForm.Field
 				name="name"
 				children={field => (
 					<>
 						<p>Synced: {JSON.stringify(field.idb.synced)}</p>
-						<TextInput label="Name" value={field.state.value} onChange={e => field.idb.handleChange(e.target.value)} />
+						<TextInput
+							label="Name"
+							value={field.state.value}
+							onChange={e => field.idb.handleChange(e.target.value)}
+						/>
 					</>
 				)}
 			/>
 			<itemForm.Field
 				name="shareable"
 				children={field => (
-					<Checkbox label="Shareable" checked={field.state.value} onChange={e => field.idb.handleChange(e.target.checked)} />
+					<Checkbox
+						label="Shareable"
+						checked={field.state.value}
+						onChange={e => field.idb.handleChange(e.target.checked)}
+					/>
+				)}
+			/>
+			<itemForm.Field
+				name="category"
+				children={field => (
+					<SearchableSelect
+						label="Category"
+						value={field.state.value}
+						onChange={value => field.idb.handleChange(value as ITEM_CATEGORY)}
+						data={Object.values(ITEM_CATEGORY).map(category => ({ label: category, value: category }))}
+					/>
 				)}
 			/>
 			<itemForm.Field
@@ -58,7 +82,14 @@ function TypedForm() {
 				children={(field) => {
 					const linkData = field.idb.data || [];
 					return (
-						<Select clearable error={field.state.meta.errors.join(', ')} value={field.state.value?.id} data={linkData.map(item => ({ label: item!.name, value: item!.id }))} onChange={value => field.idb.handleChange(linkData.find(item => item!.id === value)!)} />
+						<Select
+							label="Room"
+							clearable
+							error={field.state.meta.errors.join(', ')}
+							value={field.state.value?.id}
+							data={linkData.map(item => ({ label: item!.name, value: item!.id }))}
+							onChange={value => field.idb.handleChange(linkData.find(item => item!.id === value)!)}
+						/>
 					);
 				}}
 			/>
@@ -68,7 +99,13 @@ function TypedForm() {
 					const linkData = field.idb.data || [];
 					console.log(field.state.value?.map(item => item!.id));
 					return (
-						<MultiSelect label="Owner(s)" value={field.state.value?.map(item => item!.id)} data={linkData.map(item => ({ label: `${item!.email} - ${item.name}`, value: item!.id }))} onChange={value => field.idb.handleChange(linkData.filter(link => value.includes(link!.id)))} error={field.state.meta.errors.join(', ')} />
+						<MultiSelect
+							label="Owner(s)"
+							value={field.state.value?.map(item => item!.id)}
+							data={linkData.map(item => ({ label: item!.name, value: item!.id }))}
+							onChange={value => field.idb.handleChange(linkData.filter(link => value.includes(link!.id)))}
+							error={field.state.meta.errors.join(', ')}
+						/>
 					);
 				}}
 			/>
@@ -86,10 +123,6 @@ function TypedForm() {
 		</form>
 	);
 }
-
-export const Route = createFileRoute('/rooms')({
-	component: RouteComponent,
-});
 
 function RouteComponent() {
 	console.log('rendering route');
