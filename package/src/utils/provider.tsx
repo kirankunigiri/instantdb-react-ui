@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { InstantCoreDatabase } from '@instantdb/core';
 import { InstantReactWebDatabase, InstantSchemaDef } from '@instantdb/react';
 import { createContext, useContext } from 'react';
 
@@ -32,8 +31,8 @@ export function IDBReactUIProvider({ db, schema, children }: IDBReactUIProviderP
 
 // NEW
 export interface NewReactConfig {
-	db: InstantCoreDatabase<InstantSchemaDef<any, any, any>>
-	// db: InstantReactWebDatabase<InstantSchemaDef<any, any, any>>
+	// db: InstantCoreDatabase<InstantSchemaDef<any, any, any>>
+	db: InstantReactWebDatabase<InstantSchemaDef<any, any, any>>
 	schema: InstantSchemaDef<any, any, any>
 }
 

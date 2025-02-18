@@ -1,12 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { IContainEntitiesAndLinks } from '@instantdb/core/dist/module/schemaTypes';
-import { EntitiesDef, InstaQLParams, InstaQLResult } from '@instantdb/react';
+import { EntitiesDef, InstaQLParams, InstaQLResult, LinksDef } from '@instantdb/react';
 import { FieldApi, FormOptions, formOptions, useForm } from '@tanstack/react-form';
 import { useCallback, useEffect, useRef } from 'react';
 
 import { EntityLinks } from '..';
 import { createEntityZodSchemaV3 } from '../form/zod';
 import { useNewReactContext } from '../utils/provider';
+
+interface IContainEntitiesAndLinks<
+	Entities extends EntitiesDef,
+	Links extends LinksDef<Entities>,
+> {
+	entities: Entities
+	links: Links
+}
 
 interface InstantValue {
 	id: string
@@ -27,8 +34,6 @@ export function useIDBForm<
 		defaultValues?: Partial<NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never>
 	},
 ) {
-	console.log('running useIDBForm');
-
 	type FormData = NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never;
 	const entityName = options.entity as string;
 
@@ -63,7 +68,7 @@ export function useIDBForm<
 
 	useEffect(() => {
 		// Main entity query
-		db.subscribeQuery(options.query, (resp) => {
+		db._core.subscribeQuery(options.query, (resp) => {
 			if (resp.error) {
 				console.error(resp.error.message);
 				return;
@@ -109,7 +114,7 @@ export function useIDBForm<
 				[link.entityName]: {},
 			};
 
-			db.subscribeQuery(linkPickerQuery, (resp) => {
+			db._core.subscribeQuery(linkPickerQuery, (resp) => {
 				const linkPickerData = resp.data?.[link.entityName] as any[];
 				form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, data: linkPickerData }));
 			});

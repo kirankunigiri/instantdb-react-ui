@@ -28,7 +28,7 @@ function TypedForm() {
 			items: { room: {}, owner: { room: {} }, $: { where: { id: itemId } } },
 		},
 		debounceFields: {
-			// name: 2000,
+			name: 500,
 		},
 		defaultValues: {
 			name: '',
@@ -164,40 +164,11 @@ function RouteComponent() {
 	);
 }
 
-function CustomRoomPicker(props: SearchableSelectProps) {
-	const data = props.data.map(item => ({
-		label: item.name,
-		value: item.id,
-	}));
-
-	return (
-		<SearchableSelect label="Room" {...props} data={data} onChange={value => props.onChange({ target: { value: value } })} />
-	);
-}
-
-function CustomOwnerPicker(props: SearchableSelectProps) {
-	const data = props.data.map(item => ({
-		label: item.name,
-		value: item.id,
-	}));
-
-	return (
-		<MultiSelect label="Owner(s)" {...props} data={data} onChange={value => props.onChange({ target: { value: value } })} />
-	);
-}
-
 function TanstackForm() {
 	const form = useForm({
 		defaultValues: {
 			name: '',
 			email: '',
-		},
-		defaultState: {
-			fieldMeta: {
-				email: {
-					data: [],
-				},
-			},
 		},
 	});
 
