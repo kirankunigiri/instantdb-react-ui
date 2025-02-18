@@ -1,11 +1,31 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { IContainEntitiesAndLinks } from '@instantdb/core/dist/module/schemaTypes';
 import { EntitiesDef, InstaQLParams, InstaQLResult } from '@instantdb/react';
-import { FieldApi, FieldMeta, FieldState, formOptions, useForm } from '@tanstack/react-form';
-import { ReactNode, useCallback, useEffect, useRef } from 'react';
+import { FieldApi, FormOptions, formOptions, useForm } from '@tanstack/react-form';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 
-import { useNewReactContext } from '../utils/provider';
+import { EntityLinks } from '..';
+import { createEntityZodSchemaV2, createEntityZodSchemaV3 } from '../form/zod';
+import { NewFormProvider, useNewReactContext } from '../utils/provider';
 
+interface InstantValue {
+	id: string
+}
+
+type ConvertedLinksToStrings<
+	T,
+	Links extends EntityLinks,
+> = {
+	[K in keyof T]: K extends keyof Links
+		? Links[K]['cardinality'] extends 'one'
+			? string
+			: string[]
+		: T[K]
+};
+
+// TODO: Allow all original form options from tanstack useForm
+// TODO: move query up to args
+// TODO: Make query optional and use the entity schema to create a default query
 export function useIDBForm<
 	Schema extends IContainEntitiesAndLinks<EntitiesDef, any>,
 	T extends keyof Schema['entities'],
@@ -14,26 +34,48 @@ export function useIDBForm<
 	schema: Schema,
 	entity: T,
 	options: {
+		debounceValues?: Partial<Record<keyof (NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never), number>>
 		defaultValues?: Partial<NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never>
 		query: Q
+		formOptions?: FormOptions<NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never>
 	},
 ) {
-	type FormData = NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never;
-	const formOpts = formOptions<FormData>({
-		defaultValues: options.defaultValues as FormData,
-	});
+	console.log('running useIDBForm');
 
-	// const useMyForm: typeof useForm = useTanstackForm;
+	type FormData = NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never;
+	const entityName = entity as string;
+
+	// Use the extracted function to create schema and get defaults
+	const { zodSchema, defaults: zodDefaults } = createEntityZodSchemaV3(schema.entities[entityName]);
+
+	// Merge default values from options with zod defaults
+	// TODO: Test with create form
+	for (const [fieldName, fieldValue] of Object.entries(options.defaultValues || {})) {
+		zodDefaults[fieldName] = fieldValue;
+	}
+
+	const { db } = useNewReactContext();
+	const links = schema.entities[entity as string].links as EntityLinks;
+
+	const formOpts = formOptions<FormData>({
+		defaultValues: zodDefaults as FormData,
+	});
 
 	const form = useForm({
 		...formOpts,
-		// adapter: zodResolver(schema),
+		validators: {
+			onChange: zodSchema,
+		},
 	});
 
-	const { db } = useNewReactContext();
-	const links = schema.entities[entity as string].links;
+	// useLayoutEffect(() => {
+	// 	for (const [fieldName, link] of Object.entries(links)) {
+	// 		form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, data: [] }));
+	// 	}
+	// }, []);
 
 	useEffect(() => {
+		// Main entity query
 		db.subscribeQuery(options.query, (resp) => {
 			if (resp.error) {
 				console.error(resp.error.message);
@@ -41,7 +83,6 @@ export function useIDBForm<
 			}
 			if (resp.data) {
 				const item = (resp.data[entity] as any)?.[0];
-				console.log(item);
 
 				for (const [fieldName, fieldValue] of Object.entries(item)) {
 					let newValue: any = fieldValue;
@@ -52,9 +93,11 @@ export function useIDBForm<
 					if (link) {
 						if (newValue) {
 							if (link.cardinality === 'many') {
-								newValue = newValue.map((item: any) => item.id);
+								// console.log('many', fieldName, newValue);
+								// newValue = newValue.map((item: any) => item.id);
 							} else {
-								newValue = newValue.id;
+								// console.log('one', fieldName, newValue);
+								newValue = newValue;
 							}
 						} else {
 							newValue = '';
@@ -63,16 +106,35 @@ export function useIDBForm<
 
 					// Update the form if the value has changed
 					if (JSON.stringify(prevValue) !== JSON.stringify(newValue)) {
-						console.log('setting field value', fieldName, newValue);
+						// console.log('setting field value', fieldName, newValue);
 						form.setFieldValue(fieldName, newValue);
 					}
 					if (!(form.getFieldMeta(fieldName))?.synced) {
-						console.log('setting synced to true', fieldName);
 						form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, synced: true }));
 					}
 				}
 			}
 		});
+
+		// Relation queries
+		for (const [fieldName, link] of Object.entries(links)) {
+			// TODO: Relation query overrides - create a new link query map instead of asking dev to place them in the base query
+			const query = {
+				[link.entityName]: {},
+			};
+
+			const overrideRelationQuery = options.query[link.entityName];
+			if (overrideRelationQuery) {
+				query[link.entityName] = overrideRelationQuery;
+			}
+			// console.log('subscribing to relation query', query);
+
+			db.subscribeQuery(query, (resp) => {
+				const linkPickerData = resp.data?.[link.entityName] as any[];
+				// console.log(fieldName, 'link picker data', linkPickerData);
+				form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, data: linkPickerData }));
+			});
+		}
 	}, []);
 
 	// TODO: this is just temporary. later, use an actual debounce library that will run after the user stops typing for a certain amount of time
@@ -88,110 +150,99 @@ export function useIDBForm<
 	}, []);
 
 	const customOnChange = (field: FieldApi<any, any>, value: any) => {
-		console.log('customOnChange', field, value);
+		const oldValue = field.state.value;
+		field.handleChange(value);
 		const id = form.getFieldValue('id');
-		console.log('settings sync to false');
-
 		form.setFieldMeta(field.name, prevMeta => ({ ...prevMeta, synced: false }));
-		debouncedTransact(() => {
-			db.transact(db.tx[entity][id]!.update({ [field.name]: value }));
-		});
+
+		const link = links[field.name];
+		if (link) {
+			// Relation field db update
+			const tx = db.tx[entityName][id]!;
+			const cardinality = link.cardinality;
+			const transactions = [];
+
+			if (cardinality === 'many') {
+				// Find the difference between the old and new values, unlink the old values and link the new values
+				const newValue = value as InstantValue[];
+				const prevValues = oldValue as InstantValue[];
+				console.log('prevValues', prevValues);
+				console.log('newValue', newValue);
+				const idsToUnlink = prevValues.filter((item: InstantValue) =>
+					!newValue.some(newItem => newItem.id === item.id),
+				).map(item => item.id);
+				const idsToLink = newValue.filter((item: InstantValue) =>
+					!prevValues.some(prevItem => prevItem.id === item.id),
+				).map(item => item.id);
+				console.log('linkresult', idsToUnlink, idsToLink);
+
+				if (idsToUnlink.length > 0) transactions.push(tx.unlink({ [field.name]: idsToUnlink }));
+				if (idsToLink.length > 0) transactions.push(tx.link({ [field.name]: idsToLink }));
+			} else if (cardinality === 'one') {
+				// Unlink the old value and link the new value
+				const newValue = field.state.value as InstantValue;
+				if ((oldValue as InstantValue).id !== newValue.id) {
+					transactions.push(tx.link({ [field.name]: newValue.id }));
+				}
+			}
+
+			if (transactions.length > 0) db.transact(transactions);
+		} else {
+			// Normal field db update
+			// TODO: Only use debounce based on options.debounceValues
+			// debouncedTransact(() => {
+			if (field.state.meta.errors.length === 0) {
+				db.transact(db.tx[entity][id]!.update({ [field.name]: field.state.value }));
+			}
+			// });
+		}
 	};
 
 	// This makes state undefined
 	const OriginalField = form.Field;
-	const WrappedField = (props: any) => (
-		<OriginalField
-			{...props}
-			children={(field: FieldApi<any, any>) => {
-				const originalHandleChange = field.handleChange;
+	const WrappedField = (props: any) => {
+		return (
+			<OriginalField
+				{...props}
+				children={(field: FieldApi<any, any>) => {
+					// @ts-expect-error - custom metadata
+					field.idb = field.state.meta;
 
-				// Object.defineProperty(field, 'handleChange', {
-				// 	configurable: true,
-				// 	enumerable: true,
-				// 	writable: true,
-				// 	value: (e: any) => {
-				// 		originalHandleChange(e); // Call the original function first
-				// 		customOnChange(field, e); // Then call your custom function
-				// 	},
-				// });
+					// custom onChange handler
+					field.idb.handleChange = (e: any) => customOnChange(field, e);
 
-				field.handleChangeUpdate = (e: any) => {
-					field.handleChange(e);
-					customOnChange(field, e);
-				};
-
-				field.idbMeta = field.state.meta;
-
-				return props.children(field);
-			}}
-		/>
-	);
+					return props.children(field);
+				}}
+			/>
+		);
+	};
 	WrappedField.displayName = 'WrappedField';
 	form.Field = WrappedField;
 
-	// const TestField = ({ name, children }: { name: string, children: (field: FieldApi<any, any>) => ReactNode }) => (
-	// 	<form.Field
-	// 		name={name}
-	// 		children={field => (
-	// 			<>
-	// 				<p>{JSON.stringify(field.state.meta)}</p>
-	// 			</>
-	// 		)}
-	// 	/>
-	// );
-
-	// type FormField = FieldApi<any, any> & {
-	// 	state: FieldApi<any, any>['state'] & {
-	// 		meta: FieldApi<any, any>['state']['meta'] & CustomFieldMeta
-	// 	}
-	// 	test: string
-	// 	customMeta: CustomFieldMeta
-	// };
-
-	// type FormType = typeof form & {
-	// 	Field: (props: {
-	// 		test: string
-	// 		name: string
-	// 		children: (field: FormField) => ReactNode
-	// 	}) => ReactNode
-	// };
-
-	//   type FormField = FieldApi<any, any>;
-
-	//   type FormType = typeof form & {
-	//   	Field: (props: {
-	//   		test: string
-	//   		name: string
-	//   		children: (field: FormField) => ReactNode
-	//   	}) => ReactNode
-	//   };
-
-	// type FormField<TData> = FieldApi<TData, any> & {
-	// 	handleChangeUpdate: (e: any) => void
-	// 	state: Omit<FieldApi<TData, any>['state'], 'meta'> & {
-	// 		meta: CustomFieldMeta
-	// 	}
-	// };
-
-	// type FormType = Omit<typeof form, 'Field'> & {
-	// 	Field: <TName extends keyof FormData>(props: {
-	// 		name: TName
-	// 		children: (field: FormField<FormData>) => ReactNode
-	// 	}) => ReactNode
-	// };
 	return form;
-	// return form as unknown as FormType;
 }
 
-export interface CustomFieldMeta {
+// export interface IDBFieldMeta {
+// 	/** This is a custom function that is used to update the field value */
+// 	handleChange: (e: any) => void
+// 	/** Whether the field has been synced with the database. Only for debounced fields, which don't update immediately */
+// 	synced: boolean
+// 	/** Data for the relation picker */
+// 	data: any[]
+// }
+
+export interface IDBFieldMeta<T = any> {
+	/** This is a custom function that is used to update the field value */
+	handleChange: (value: T) => void
+	/** Whether the field has been synced with the database. Only for debounced fields, which don't update immediately */
 	synced: boolean
+	/** Data for the relation picker */
+	data: T extends any[] ? T : T[]
 }
 
 declare module '@tanstack/react-form' {
-	interface FieldApi<TData, TName extends string | number | symbol = string> {
-		/** This is a custom function that is used to update the field value */
-		handleChangeUpdate: (e: any) => void
-		idbMeta: CustomFieldMeta
+	interface FieldApi {
+		/** Metadata specific to InstantDB */
+		idb: IDBFieldMeta<this['state']['value']>
 	}
 }

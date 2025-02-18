@@ -1,118 +1,91 @@
-import { init, InstaQLParams } from '@instantdb/core';
-import { InstaQLEntity, InstaQLResult } from '@instantdb/react';
-import { Checkbox, Divider, MultiSelect, Space, TextInput } from '@mantine/core';
-import { formOptions, useForm } from '@tanstack/react-form';
+import { InstaQLResult } from '@instantdb/react';
+import { Checkbox, Divider, MultiSelect, Select, Space, TextInput } from '@mantine/core';
+import { useForm } from '@tanstack/react-form';
 import { createFileRoute } from '@tanstack/react-router';
-import { memo, useDeferredValue, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import schema, { AllEntities, AppSchema, ITEM_CATEGORY } from '~client/db/instant.schema';
-import { CheckboxWrapper } from '~client/lib/components/components';
+import schema, { AppSchema, ITEM_CATEGORY } from '~client/db/instant.schema';
 import { SearchableSelect, SearchableSelectProps } from '~client/lib/components/searchable-select';
-import { db, entityNames } from '~client/main';
-import { getEntityFields } from '~instantdb-react-ui/index';
-import { NewField, NewForm, NewRelationField } from '~instantdb-react-ui/new-form/form';
-// import { useEntityForm } from '~instantdb-react-ui/new-form/use-form';
-import { useEntityForm } from '~instantdb-react-ui/new-form/query-form';
+import { db } from '~client/main';
 import { useIDBForm } from '~instantdb-react-ui/new-form/use-idbform';
+
 const itemId = 'c62637e9-2ba1-4f63-a74f-a06986596913';
 const personId = '0060585b-d673-4b2b-ab13-a1c013fff617';
-type Test = InstaQLEntity<AppSchema, 'items'>;
-
-// TODO: Make this work with any schema
-// export interface EntityForm<T extends keyof AppSchema['entities']> {
-// 	Field: <K extends keyof EntityWithLinks<AppSchema, T>>(props: {
-// 		name: K
-// 		children: (field: {
-// 			name: K
-// 			state: {
-// 				value: EntityWithLinks<AppSchema, T>[K] // This will now be properly typed
-// 			}
-// 			handleBlur: () => void
-// 			handleChange: (value: EntityWithLinks<AppSchema, T>[K]) => void // This will now be properly typed
-// 		}) => React.ReactElement
-// 	}) => React.ReactElement
-// 	handleSubmit: () => void
-// }
-
-// export function useEntityForm<T extends keyof AppSchema['entities']>(
-// 	entity: T,
-// 	options?: {
-// 		defaultValues?: Partial<EntityWithLinks<AppSchema, T>>
-// 	},
-// ): EntityForm<T> {
-// 	return {
-// 		Field: ({ name, children }) => {
-// 			// Now TypeScript knows the exact type for each field
-// 			const value = options?.defaultValues?.[name] as EntityWithLinks<AppSchema, T>[typeof name];
-// 			return children({
-// 				name,
-// 				state: { value },
-// 				handleBlur: () => {},
-// 				handleChange: (value: EntityWithLinks<AppSchema, T>[typeof name]) => {},
-// 			});
-// 		},
-// 		handleSubmit: () => {},
-// 	};
-// }
 
 // TODO: Need to pass in list of link fields to include (and make this typesafe)
 // TODO: Alternate option - pass full query instead of entity name
 // TODO: allow default value override like here
 
-// async function testQuery(query: InstaQLParams<AppSchema>) {
-// 	const result = {};
-// 	return result;
-// }
-// testQuery({
-
-// })
-
-type ItemsWithRoomResult = InstaQLResult<AppSchema, { items: { room: {} } }>;
-
 function TypedForm() {
-	const form = useIDBForm(schema, 'items', {
+	const itemForm = useIDBForm(schema, 'items', {
 		defaultValues: {
 			name: '',
 			shareable: true,
 			category: ITEM_CATEGORY.Other,
 		},
-		query: {
-			items: { room: {}, $: { where: { id: itemId } } },
+		debounceValues: {
+			shareable: 100,
 		},
-	});
+		query: {
+			items: { room: {}, owner: { room: {} }, $: { where: { id: itemId } } },
+		} },
+	);
+
+	// const personForm = useIDBForm(schema, 'persons', {
+	// 	query: { persons: { $: { where: { id: personId } } } },
+	// });
 
 	return (
-		<>
-			<form.Field
+		<form className="flex flex-col gap-2">
+			<p className="text-lg font-bold">Item Form</p>
+			<itemForm.Field
 				name="name"
 				children={field => (
 					<>
-						<p>{JSON.stringify(field.handleChangeUpdate)}</p>
-						<p>Synced: {JSON.stringify(field.state.meta.synced)}</p>
-						<p>IDB Meta: {JSON.stringify(field.idbMeta.synced)}</p>
-						<TextInput label="Name" value={field.state.value} onChange={e => field.handleChangeUpdate(e.target.value)} />
+						<p>Synced: {JSON.stringify(field.idb.synced)}</p>
+						<TextInput label="Name" value={field.state.value} onChange={e => field.idb.handleChange(e.target.value)} />
 					</>
 				)}
 			/>
-			<form.Field
+			<itemForm.Field
 				name="shareable"
 				children={field => (
-					<Checkbox label="Shareable" checked={field.state.value} />
+					<Checkbox label="Shareable" checked={field.state.value} onChange={e => field.idb.handleChange(e.target.checked)} />
 				)}
 			/>
-			<form.Field
+			<itemForm.Field
 				name="room"
-				children={field => (
-					<p>{JSON.stringify(field.state.value)}</p>
-				)}
+				children={(field) => {
+					const linkData = field.idb.data || [];
+					return (
+						<Select clearable error={field.state.meta.errors.join(', ')} value={field.state.value?.id} data={linkData.map(item => ({ label: item!.name, value: item!.id }))} onChange={value => field.idb.handleChange(linkData.find(item => item!.id === value)!)} />
+					);
+				}}
 			/>
-		</>
+			<itemForm.Field
+				name="owner"
+				children={(field) => {
+					const linkData = field.idb.data || [];
+					console.log(field.state.value?.map(item => item!.id));
+					return (
+						<MultiSelect label="Owner(s)" value={field.state.value?.map(item => item!.id)} data={linkData.map(item => ({ label: `${item!.email} - ${item.name}`, value: item!.id }))} onChange={value => field.idb.handleChange(linkData.filter(link => value.includes(link!.id)))} error={field.state.meta.errors.join(', ')} />
+					);
+				}}
+			/>
+
+			<Space h="lg" />
+			<p className="text-lg font-bold">Person Form</p>
+			{/* <personForm.Field
+				name="name"
+				children={field => <TextInput label="Name" value={field.state.value} onChange={e => field.idb.handleChange(e.target.value)} />}
+			/>
+			<personForm.Field
+				name="email"
+				children={field => <TextInput label="Name" value={field.state.value} onChange={e => field.idb.handleChange(e.target.value)} error={field.state.meta.errors.join(', ')} />}
+			/> */}
+		</form>
 	);
 }
-
-// const personFields = getEntityFields(schema, 'persons');
-const personFields = AllEntities.persons;
-const itemFields = AllEntities.items;
 
 export const Route = createFileRoute('/rooms')({
 	component: RouteComponent,
@@ -136,8 +109,8 @@ function RouteComponent() {
 			<TypedForm />
 			<Divider my="xl" />
 
-			<p>Auto Form</p>
-			<NewForm id="c62637e9-2ba1-4f63-a74f-a06986596913" entity={entityNames.items}>
+			{/* <p>Auto Form</p>
+			<NewForm id="c62637e9-2ba1-4f63-a74f-a06986596913" entity={entityNames.rooms}>
 				<NewField fieldName={itemFields.name}>
 					<TextInput label="Name" />
 				</NewField>
@@ -153,7 +126,7 @@ function RouteComponent() {
 						<CustomOwnerPicker data={[]} />
 					)}
 				/>
-			</NewForm>
+			</NewForm> */}
 		</div>
 	);
 }
@@ -185,6 +158,13 @@ function TanstackForm() {
 		defaultValues: {
 			name: '',
 			email: '',
+		},
+		defaultState: {
+			fieldMeta: {
+				email: {
+					data: [],
+				},
+			},
 		},
 	});
 
@@ -254,10 +234,6 @@ function HardcodedForm() {
 	}, []);
 
 	return (
-		// <MemoizedInput
-		// 	value={name}
-		// 	onChange={e => db.transact(db.tx.persons[personId]!.update({ name: e.currentTarget.value }))}
-		// />
 		<TextInput
 			value={name}
 			onChange={(e) => {
@@ -269,23 +245,3 @@ function HardcodedForm() {
 		/>
 	);
 }
-
-const MemoizedInput = memo(function MemoizedInput({
-	value,
-	onChange,
-}: {
-	value: string
-	onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-}) {
-	console.log('rendering memoized input', value);
-
-	return (
-		<TextInput
-			label="Test performance..."
-			placeholder="Test performance..."
-			className="w-full"
-			value={value}
-			onChange={onChange}
-		/>
-	);
-});

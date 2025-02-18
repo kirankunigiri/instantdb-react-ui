@@ -275,10 +275,17 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
 							</Tooltip>
 							<code className="text-sm font-bold text-white/80">+</code>
 
+							{/* Tamnstack Logo */}
+							<Tooltip openDelay={0} label="Tanstack Form">
+								<img src="https://tanstack.com/_build/assets/logo-color-600w-Er4SOkq1.png" alt="Zod Logo" className={`max-h-6 max-w-6 ${LOGO_TRANSITION}`} />
+							</Tooltip>
+							<code className="text-sm font-bold text-white/80">+</code>
+
 							{/* Zod Logo */}
 							<Tooltip openDelay={0} label="Zod">
 								<img src="https://zod.dev/logo.svg" alt="Zod Logo" className={`max-h-6 max-w-6 ${LOGO_TRANSITION}`} />
 							</Tooltip>
+
 						</Tooltip.Group>
 					</div>
 

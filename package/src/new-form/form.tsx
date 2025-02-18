@@ -130,7 +130,7 @@ const UpdateForm = () => {
 			}
 			if (resp.data) {
 				const item = resp.data[entityName]?.[0];
-				console.log(item);
+				// console.log(item);
 
 				for (const [fieldName, fieldValue] of Object.entries(item)) {
 					let newValue: any = fieldValue;
@@ -152,7 +152,7 @@ const UpdateForm = () => {
 
 					// Update the form if the value has changed
 					if (JSON.stringify(prevValue) !== JSON.stringify(newValue)) {
-						console.log('setting field value', fieldName, newValue);
+						// console.log('setting field value', fieldName, newValue);
 						form.setFieldValue(fieldName, newValue);
 					}
 					if (!(form.getFieldMeta(fieldName) as NewFieldMeta)?.synced) {

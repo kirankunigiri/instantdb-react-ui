@@ -1,6 +1,4 @@
-import { IContainEntitiesAndLinks } from '@instantdb/core/dist/module/schemaTypes';
-import { EntitiesDef, i, InstaQLEntity } from '@instantdb/react';
-import { isTemplateSpan } from 'typescript';
+import { i, InstaQLEntity } from '@instantdb/react';
 import { z } from 'zod';
 
 // TODO: import from package causes an error where schema:push fails when parsing field.tsx
@@ -76,7 +74,7 @@ const _schema = i.schema({
 
 // Make the owner and room links required
 makeLinkRequired(_schema.entities.items.links.owner, 'Please select at least one owner');
-makeLinkRequired(_schema.entities.items.links.room);
+makeLinkRequired(_schema.entities.items.links.room, 'Please select a room');
 
 // This helps Typescript display nicer intellisense
 type _AppSchema = typeof _schema;
@@ -116,85 +114,3 @@ function getEntities<Schema extends { entities: any }>(schema: Schema) {
 export const AllEntities = getEntities(_schema);
 
 type Test2 = EntityFields<AppSchema, 'items'>;
-
-// ... existing code ...
-
-// ... existing code ...
-
-// Helper type to get an entity's attributes with their proper types
-type EntityAttributes<
-	Schema extends IContainEntitiesAndLinks<EntitiesDef, any>,
-	T extends keyof Schema['entities'],
-> = InstaQLEntity<Schema, T>;
-
-// Helper type to determine if a link is "many" or "one"
-type LinkCardinality<
-	Schema extends IContainEntitiesAndLinks<EntitiesDef, any>,
-	T extends keyof Schema['entities'],
-	K extends keyof Schema['entities'][T]['links'],
-> = Schema['entities'][T]['links'][K]['has'] extends 'many'
-	? InstaQLEntity<Schema, Schema['entities'][T]['links'][K]['on']>[]
-	: InstaQLEntity<Schema, Schema['entities'][T]['links'][K]['on']>;
-
-// Helper type to create a nested query structure for links
-// Helper type to create a nested query structure for specific links
-type LinkQuery<
-	Schema extends IContainEntitiesAndLinks<EntitiesDef, any>,
-	T extends keyof Schema['entities'],
-	Links extends keyof Schema['entities'][T]['links'] = never,
-> = Record<Links, {}>;
-
-// Updated helper type to get an entity with specific links
-export type EntityWithLinks<
-	Schema extends IContainEntitiesAndLinks<EntitiesDef, any>,
-	T extends keyof Schema['entities'],
-	Links extends keyof Schema['entities'][T]['links'] = never,
-> = InstaQLEntity<
-	Schema,
-	T,
-	LinkQuery<Schema, T, Links>
->;
-
-// Test the type with specific links
-type ItemWithOwnerOnly = EntityWithLinks<AppSchema, 'items', 'owner'>;
-type ItemWithRoomOnly = EntityWithLinks<AppSchema, 'items', 'room'>;
-type ItemWithBothLinks = EntityWithLinks<AppSchema, 'items', 'owner' | 'room'>;
-
-// Example usage (these are just for type checking)
-const test1: ItemWithOwnerOnly = {}; // Will only include owner relation
-const test2: ItemWithRoomOnly = {}; // Will only include room relation
-const test3: ItemWithBothLinks = {}; // Will include both relations
-
-export function createEntityQuery<
-	T extends keyof AppSchema['entities'],
-	Links extends keyof AppSchema['entities'][T]['links'] = never,
->(
-	entityName: T,
-	...relations: Links[]
-): LinkQuery<AppSchema, T, Links> {
-	return Object.fromEntries(
-		relations.map(relation => [relation, {}]),
-	) as LinkQuery<AppSchema, T, Links>;
-}
-export function withLinks<
-	T extends keyof AppSchema['entities'],
-	Links extends readonly (keyof AppSchema['entities'][T]['links'])[],
->(
-	entityName: T,
-	relations: [...Links],
-): EntityWithLinks<
-		AppSchema,
-		T,
-		Links[number]
-	> {
-	return {
-		...createEntityQuery(entityName, ...relations),
-	} as any;
-}
-
-// Example usage with improved type inference:
-const itemWithLinks = withLinks('items', ['owner', 'room']);
-// Type is EntityWithLinks<AppSchema, 'items', 'owner' | 'room'>
-
-const personWithLinks = withLinks('persons', ['room', 'items']);
-// Type is EntityWithLinks<AppSchema, 'persons', 'room'>

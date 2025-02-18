@@ -16,15 +16,20 @@ export const addZod = <T extends DataAttrDef<any, any>>(
 	};
 };
 
+/** Zod schema for any Instant entity - requires an id field but allows any other properties */
+export const generateZodEntitySchema = (message = 'This relation is required') => z.object({
+	id: z.string(),
+}, { message }).passthrough();
+
 export const makeLinkRequired = <T extends LinkAttrDef<any, any>>(
 	input: T,
 	message?: string,
 ) => {
 	const zodMessage = message || 'This relation is required';
 	if (input.cardinality === 'one') {
-		input['_zodTransform'] = () => z.string().min(1, { message: zodMessage });
+		input['_zodTransform'] = () => generateZodEntitySchema(zodMessage);
 	} else {
-		input['_zodTransform'] = () => z.string().array().min(1, { message: zodMessage });
+		input['_zodTransform'] = () => z.array(generateZodEntitySchema(zodMessage)).min(1, { message: zodMessage });
 	}
 };
 
