@@ -1,11 +1,39 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { FieldApi } from '@tanstack/react-form';
+import type { FieldApi, FieldMeta, Validator } from '@tanstack/react-form';
 import { useForm } from '@tanstack/react-form';
 import { cloneElement, createContext, memo, ReactElement, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 import { EntityLinks, IDBFormProps } from '../form/form';
-import { createEntityZodSchemaV2, createEntityZodSchemaV3 } from '../form/zod';
+import { createEntityZodSchemaV2 } from '../form/zod';
 import { useNewReactContext } from '../utils/provider';
+
+type IDBEntity = Record<string, any> & { id: string };
+
+interface NewFieldBaseProps<T extends IDBEntity> {
+	fieldName: string
+}
+
+// TODO: Type child element to have required props
+// type ChildReactElement = ReactElement<{ children: string }>;
+
+export type NewFieldProps<T extends IDBEntity> = NewFieldBaseProps<T> & (
+  | { children: ReactElement, render?: never }
+  | { render: (field: TestField) => ReactElement, children?: never }
+);
+
+interface NewFieldMeta extends FieldMeta {
+	synced: boolean
+}
+interface NewRelationFieldMeta extends FieldMeta {
+	data: any[]
+}
+
+interface TestField extends FieldApi<unknown, string, undefined, Validator<unknown, unknown> | undefined, unknown> {
+	state: {
+		meta: NewRelationFieldMeta
+		value: any
+	}
+}
 
 // --------------------------------------------------------------------------------
 // Form context
@@ -53,23 +81,6 @@ export const NewForm = memo((props: NewFormProps) => {
 			onChange: zodSchema,
 		},
 	});
-
-	// form.store.subscribe((state) => {
-	// 	console.log('form state', state);
-	// });
-
-	// // Get relation lists
-	// const queryObject = Object.entries(links).reduce((acc, [_, link]) => ({
-	// 	...acc,
-	// 	[link.entityName]: {}, // Query all items from the linked entity
-	// }), {});
-	// const dbQuery = db.useQuery(props.query || queryObject);
-
-	// // Map relation data back to field names
-	// const relationPickerData = Object.entries(links).reduce((acc, [fieldName, link]) => ({
-	// 	...acc,
-	// 	[fieldName]: (dbQuery.data as Record<string, any[]>)?.[link.entityName] || [],
-	// }), {} as Record<string, any[]>);
 
 	return (
 		<>
@@ -144,11 +155,8 @@ const UpdateForm = () => {
 						console.log('setting field value', fieldName, newValue);
 						form.setFieldValue(fieldName, newValue);
 					}
-					if (!form.getFieldMeta(fieldName)?.synced) {
-						form.setFieldMeta(fieldName, prevMeta => ({
-							...prevMeta,
-							synced: true,
-						}));
+					if (!(form.getFieldMeta(fieldName) as NewFieldMeta)?.synced) {
+						form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, synced: true }));
 					}
 				}
 			}
@@ -182,11 +190,7 @@ export const NewField = (props: { fieldName: string, children: ReactElement }) =
 
 	const customOnChange = (field: FieldApi<any, any>, e: any) => {
 		field.handleChange(e.target.value);
-		form.setFieldMeta(field.name, prevMeta => ({
-			...prevMeta,
-			synced: false,
-		}));
-		// db.transact(db.tx[entityName][id]!.update({ [props.fieldName]: e.target.value }));
+		form.setFieldMeta(field.name, prevMeta => ({ ...prevMeta, synced: false }));
 		debouncedTransact(e.target.value);
 	};
 
@@ -211,10 +215,11 @@ export const NewField = (props: { fieldName: string, children: ReactElement }) =
 	);
 };
 
-export const NewRelationField = (props: { fieldName: string, children: ReactElement }) => {
+export function NewRelationField<T extends IDBEntity>(props: NewFieldProps<T>) {
 	const { db, schema } = useNewReactContext();
 	const { form, entityName, id } = useNewFormContext();
-	console.log('rendering field');
+	const renderElement = props.children;
+	console.log('rendering relation field');
 
 	const entity = schema.entities[entityName];
 	const links = entity.links as EntityLinks;
@@ -224,7 +229,6 @@ export const NewRelationField = (props: { fieldName: string, children: ReactElem
 	};
 
 	// Get relation picker data
-	const [relationPickerData, setRelationPickerData] = useState<any[]>([]);
 	useEffect(() => {
 		db.subscribeQuery(queryObject, (resp) => {
 			if (resp.error) {
@@ -233,7 +237,7 @@ export const NewRelationField = (props: { fieldName: string, children: ReactElem
 			}
 			if (resp.data) {
 				const relationPickerData = resp.data[link.entityName];
-				setRelationPickerData(relationPickerData);
+				form.setFieldMeta(props.fieldName, prevMeta => ({ ...prevMeta, data: relationPickerData }));
 			}
 		});
 	}, []);
@@ -273,18 +277,30 @@ export const NewRelationField = (props: { fieldName: string, children: ReactElem
 			name={props.fieldName}
 			children={field => (
 				<>
-					<p>Synced: {`${field.state.meta.synced || false}`}</p>
 					<p>Dirty: {`${field.state.meta.isDirty}`}</p>
 					{
-						cloneElement(props.children, {
-							...(props.children.props as any),
+						// cloneElement(renderElement, {
+						// 	...(renderElement.props as any),
+						// 	value: field.state.value,
+						// 	onBlur: field.handleBlur,
+						// 	onChange: (e: any) => customOnChange(field, e),
+						// 	error: field.state.meta.errors.join(','),
+						// 	// data: relationPickerData,
+						// 	data: (field as TestField).state.meta.data || [],
+						// })
+					}
+					{cloneElement(
+						props.render
+							? props.render(field as TestField)
+							: props.children!,
+						{
 							value: field.state.value,
 							onBlur: field.handleBlur,
 							onChange: (e: any) => customOnChange(field, e),
 							error: field.state.meta.errors.join(','),
-							data: relationPickerData,
-						})
-					}
+							data: (field as TestField).state.meta.data || [],
+						},
+					)}
 				</>
 			)}
 		/>
