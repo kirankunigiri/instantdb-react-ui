@@ -1,13 +1,13 @@
-import { InstaQLResult } from '@instantdb/react';
+import { InstaQLParams } from '@instantdb/react';
 import { Checkbox, Divider, MultiSelect, Select, Space, TextInput } from '@mantine/core';
-import { useForm } from '@tanstack/react-form';
+import { FieldApi, ReactFormExtendedApi, useForm, useStore } from '@tanstack/react-form';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
-import schema, { AppSchema, ITEM_CATEGORY } from '~client/db/instant.schema';
-import { SearchableSelect, SearchableSelectProps } from '~client/lib/components/searchable-select';
+import schema, { ITEM_CATEGORY } from '~client/db/instant.schema';
+import { SearchableSelect } from '~client/lib/components/searchable-select';
 import { db } from '~client/main';
-import { useIDBForm } from '~instantdb-react-ui/new-form/use-idbform';
+import { ExtractFormData, useIDBForm } from '~instantdb-react-ui/new-form/use-idbform';
 
 export const Route = createFileRoute('/rooms')({
 	component: RouteComponent,
@@ -17,102 +17,97 @@ const itemId = 'c62637e9-2ba1-4f63-a74f-a06986596913';
 const personId = '0060585b-d673-4b2b-ab13-a1c013fff617';
 
 // TODO: Need to pass in list of link fields to include (and make this typesafe)
-// TODO: Alternate option - pass full query instead of entity name
 // TODO: allow default value override like here
+
+const itemQuery = { items: { room: {}, owner: { room: {} }, $: { where: { id: itemId } } } } satisfies InstaQLParams<typeof schema>;
 
 function TypedForm() {
 	const itemForm = useIDBForm({
+		type: 'update',
 		schema,
 		entity: 'items',
-		query: {
-			items: { room: {}, owner: { room: {} }, $: { where: { id: itemId } } },
-		},
-		debounceFields: {
-			name: 500,
-		},
+		query: itemQuery,
+		debounceFields: { name: 500 },
 		defaultValues: {
 			name: '',
 			shareable: false,
 			category: ITEM_CATEGORY.Other,
 		},
 		linkPickerQueries: {
-			owner: { persons: { $: { limit: 10 } } },
+			owner: { persons: { room: {}, $: { order: { name: 'asc' } } } },
+			room: { rooms: { $: { order: { name: 'asc' } } } },
 		},
 	});
 
-	return (
-		<form className="flex flex-col gap-1">
-			<p className="text-lg font-bold">Item Form</p>
-			<itemForm.Field
-				name="name"
-				children={field => (
-					<>
-						<p>Synced: {JSON.stringify(field.idb.synced)}</p>
-						<TextInput
-							label="Name"
-							value={field.state.value}
-							onChange={e => field.idb.handleChange(e.target.value)}
-						/>
-					</>
-				)}
-			/>
-			<itemForm.Field
-				name="shareable"
-				children={field => (
-					<Checkbox
-						label="Shareable"
-						checked={field.state.value}
-						onChange={e => field.idb.handleChange(e.target.checked)}
-					/>
-				)}
-			/>
-			<itemForm.Field
-				name="category"
-				children={field => (
-					<SearchableSelect
-						label="Category"
-						value={field.state.value}
-						onChange={value => field.idb.handleChange(value as ITEM_CATEGORY)}
-						data={Object.values(ITEM_CATEGORY).map(category => ({ label: category, value: category }))}
-					/>
-				)}
-			/>
-			<itemForm.Field
-				name="room"
-				children={(field) => {
-					const linkData = field.idb.data || [];
-					return (
-						<Select
-							label="Room"
-							clearable
-							error={field.state.meta.errors.join(', ')}
-							value={field.state.value?.id}
-							data={linkData.map(item => ({ label: item!.name, value: item!.id }))}
-							onChange={value => field.idb.handleChange(linkData.find(item => item!.id === value)!)}
-						/>
-					);
-				}}
-			/>
-			<itemForm.Field
-				name="owner"
-				children={(field) => {
-					const linkData = field.idb.data || [];
-					console.log(field.state.value?.map(item => item!.id));
-					return (
-						<MultiSelect
-							label="Owner(s)"
-							value={field.state.value?.map(item => item!.id)}
-							data={linkData.map(item => ({ label: item!.name, value: item!.id }))}
-							onChange={value => field.idb.handleChange(linkData.filter(link => value.includes(link!.id)))}
-							error={field.state.meta.errors.join(', ')}
-						/>
-					);
-				}}
-			/>
+	console.log('itemForm.getFieldValue("room")', itemForm.getFieldValue('room'));
 
-			<Space h="lg" />
+	return (
+		<>
+			<form className="flex flex-col gap-1">
+				<p className="text-lg font-bold">Item Form</p>
+				<itemForm.Field
+					name="name"
+					children={field => (
+						<>
+							<p>Synced: {JSON.stringify(field.idb.synced)}</p>
+							<TextInput
+								label="Name"
+								value={field.state.value}
+								onChange={e => field.idb.handleChange(e.target.value)}
+							/>
+						</>
+					)}
+				/>
+				<itemForm.Field
+					name="shareable"
+					children={field => (
+						<Checkbox
+							label="Shareable"
+							checked={field.state.value}
+							onChange={e => field.idb.handleChange(e.target.checked)}
+						/>
+					)}
+				/>
+				<itemForm.Field
+					name="category"
+					children={field => (
+						<SearchableSelect
+							label="Category"
+							value={field.state.value}
+							onChange={value => field.idb.handleChange(value as ITEM_CATEGORY)}
+							data={Object.values(ITEM_CATEGORY).map(category => ({ label: category, value: category }))}
+						/>
+					)}
+				/>
+				<itemForm.Field
+					name="room"
+					children={(field) => {
+						const linkData = field.idb.data || [];
+						return (
+							<Select
+								label="Room"
+								clearable
+								error={field.state.meta.errors.join(', ')}
+								value={field.state.value?.id}
+								data={linkData.map(item => ({ label: item!.name, value: item!.id }))}
+								onChange={(value) => {
+									// TODO: This is broken, might need to await the handleChange
+									itemForm.setFieldValue('owner', []);
+									field.idb.handleChange(linkData.find(item => item!.id === value)!);
+								}}
+							/>
+						);
+					}}
+				/>
+				<itemForm.Field
+					name="owner"
+					children={field => <OwnerField field={field} itemForm={itemForm} />}
+				/>
+			</form>
+
+			{/* <Space h="lg" />
 			<p className="text-lg font-bold">Person Form</p>
-			{/* <personForm.Field
+			<personForm.Field
 				name="name"
 				children={field => <TextInput label="Name" value={field.state.value} onChange={e => field.idb.handleChange(e.target.value)} />}
 			/>
@@ -120,7 +115,29 @@ function TypedForm() {
 				name="email"
 				children={field => <TextInput label="Name" value={field.state.value} onChange={e => field.idb.handleChange(e.target.value)} error={field.state.meta.errors.join(', ')} />}
 			/> */}
-		</form>
+		</>
+	);
+}
+
+type FormData = ExtractFormData<typeof schema, typeof itemQuery, 'items'>;
+
+// TODO: Change owner filter based on the room
+function OwnerField({ field, itemForm }: {
+	field: FieldApi<FormData, 'owner'>
+	itemForm: ReactFormExtendedApi<FormData>
+}) {
+	const room = useStore(itemForm.store, state => state.values.room);
+	const linkData = field.idb.data || [];
+	const filteredLinkData = linkData.filter(person => person.room!.id === room!.id);
+
+	return (
+		<MultiSelect
+			label={`Owner(s) ${field.state.value?.map(item => item!.name).join(', ')}`}
+			value={field.state.value?.map(item => item!.id)}
+			data={filteredLinkData.map(item => ({ label: item!.name, value: item!.id }))}
+			onChange={value => field.idb.handleChange(linkData.filter(link => value.includes(link!.id)))}
+			error={field.state.meta.errors.join(', ')}
+		/>
 	);
 }
 

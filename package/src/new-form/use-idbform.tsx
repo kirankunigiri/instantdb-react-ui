@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { EntitiesDef, InstaQLParams, InstaQLResult, LinksDef } from '@instantdb/react';
+import { EntitiesDef, id, InstaQLParams, InstaQLResult, LinksDef } from '@instantdb/react';
 import { FieldApi, FormOptions, formOptions, useForm } from '@tanstack/react-form';
 import { useCallback, useEffect, useRef } from 'react';
 
@@ -7,7 +7,13 @@ import { EntityLinks } from '..';
 import { createEntityZodSchemaV3 } from '../form/zod';
 import { useNewReactContext } from '../utils/provider';
 
-interface IContainEntitiesAndLinks<
+export type ExtractFormData<
+	TSchema extends IContainEntitiesAndLinks<EntitiesDef, any>,
+	TQuery extends Record<string, any>,
+	TEntity extends keyof InstaQLResult<TSchema, TQuery>,
+> = NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never;
+
+export interface IContainEntitiesAndLinks<
 	Entities extends EntitiesDef,
 	Links extends LinksDef<Entities>,
 > {
@@ -19,23 +25,29 @@ interface InstantValue {
 	id: string
 }
 
+export type IDBFormType = 'update' | 'create';
+
 export function useIDBForm<
-	Schema extends IContainEntitiesAndLinks<EntitiesDef, any>,
-	T extends keyof Schema['entities'],
-	Q extends InstaQLParams<Schema>,
-	LQ extends Partial<Record<keyof Schema['entities'][T]['links'], InstaQLParams<Schema>>>, // ideally, we should limit this to only links that were in the query, but for now we allow all links
+	TSchema extends IContainEntitiesAndLinks<EntitiesDef, any>,
+	TEntity extends keyof TSchema['entities'],
+	TQuery extends InstaQLParams<TSchema>,
+	TLinkQueries extends Partial<Record<keyof TSchema['entities'][TEntity]['links'], InstaQLParams<TSchema>>>, // ideally, we should limit this to only links that were in the query, but for now we allow all links
 >(
-	options: Omit<FormOptions<NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never>, 'defaultValues'> & {
-		schema: Schema
-		entity: T
-		query: Q
-		linkPickerQueries?: LQ
-		debounceFields?: Partial<Record<keyof (NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never), number>>
-		defaultValues?: Partial<NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never>
+	options: Omit<FormOptions<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never>, 'defaultValues' | 'onSubmit'> & {
+		type: IDBFormType
+		schema: TSchema
+		entity: TEntity
+		query: TQuery
+		linkPickerQueries?: TLinkQueries
+		debounceFields?: Partial<Record<keyof (NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never), number>>
+		defaultValues?: Partial<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never>
+		onSubmit?: (options: { idbSubmit: (value: NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never) => Promise<void>, value: NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never }) => Promise<void>
 	},
 ) {
-	type FormData = NonNullable<InstaQLResult<Schema, Q>[T]> extends (infer U)[] ? U : never;
+	type FormData = NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never;
+	// type FormData = ExtractFormData<TSchema, TQuery, TEntity>; // this seems to slow down type inference autocomplete
 	const entityName = options.entity as string;
+	let queryValue: any = null;
 
 	// Use the extracted function to create schema and get defaults
 	const { zodSchema, defaults: zodDefaults } = createEntityZodSchemaV3(options.schema.entities[entityName]);
@@ -51,7 +63,7 @@ export function useIDBForm<
 
 	const formOpts = formOptions<FormData>({
 		...(() => {
-			const { schema, entity, query, debounceFields, ...rest } = options;
+			const { schema, entity, query, debounceFields, type, ...rest } = options;
 			return {
 				...rest,
 				defaultValues: zodDefaults, // replaces defaultValues with the merged zodDefaults
@@ -59,54 +71,96 @@ export function useIDBForm<
 		})(),
 	});
 
+	const idbSubmit = async (value: FormData) => {
+		const linkValues: Record<string, any> = {};
+		const normalValues: Record<string, any> = {};
+
+		for (const [fieldName, fieldValue] of Object.entries(value as object)) {
+			if (links[fieldName]) {
+				linkValues[fieldName] = fieldValue;
+			} else {
+				normalValues[fieldName] = fieldValue;
+			}
+		}
+
+		const useId = options.type === 'create' ? id() : (value as InstantValue).id;
+		let baseTransaction = db.tx[entityName][useId]!.update(normalValues);
+
+		for (const [fieldName, fieldValue] of Object.entries(linkValues)) {
+			const link = links[fieldName];
+			if (link) {
+				if (link.cardinality === 'many') {
+					const linkValues = fieldValue as InstantValue[];
+					baseTransaction = baseTransaction.link({ [fieldName]: linkValues.map(val => val.id) });
+				} else if (link.cardinality === 'one') {
+					const linkValue = fieldValue as InstantValue;
+					baseTransaction = baseTransaction.link({ [fieldName]: linkValue.id });
+				}
+			}
+		}
+
+		await db.transact(baseTransaction);
+	};
+
 	const form = useForm({
 		...formOpts,
 		validators: {
 			onChange: zodSchema,
 		},
+		onSubmit: async ({ value }) => {
+			if (options.onSubmit) {
+				await options.onSubmit({ value, idbSubmit });
+			} else {
+				await idbSubmit(value);
+			}
+		},
 	});
 
 	useEffect(() => {
 		// Main entity query
-		db._core.subscribeQuery(options.query, (resp) => {
-			if (resp.error) {
-				console.error(resp.error.message);
-				return;
-			}
-			if (resp.data) {
-				const item = (resp.data[options.entity] as any)?.[0];
+		if (options.type === 'update') {
+			db._core.subscribeQuery(options.query, (resp) => {
+				if (resp.error) {
+					console.error(resp.error.message);
+					return;
+				}
+				if (resp.data) {
+					const item = (resp.data[options.entity] as any)?.[0];
+					queryValue = item;
 
-				for (const [fieldName, fieldValue] of Object.entries(item)) {
-					let newValue: any = fieldValue;
-					const prevValue = form.getFieldValue(fieldName);
+					for (const [fieldName, fieldValue] of Object.entries(item)) {
+						let newValue: any = fieldValue;
+						const prevValue = form.getFieldValue(fieldName);
 
-					// For relations, use the id as value. When unlinking, the value is undefined
-					const link = links[fieldName];
-					if (link) {
-						if (newValue) {
-							if (link.cardinality === 'many') {
+						// For relations, use the id as value. When unlinking, the value is undefined
+						const link = links[fieldName];
+						if (link) {
+							if (newValue) {
+								if (link.cardinality === 'many') {
 								// console.log('many', fieldName, newValue);
 								// newValue = newValue.map((item: any) => item.id);
-							} else {
+								} else {
 								// console.log('one', fieldName, newValue);
-								newValue = newValue;
+									newValue = newValue;
+								}
+							} else {
+								newValue = '';
 							}
-						} else {
-							newValue = '';
+						}
+
+						// Update the form if the value has changed
+						if (JSON.stringify(prevValue) !== JSON.stringify(newValue)) {
+							console.log(`newValue${JSON.stringify(newValue)}`);
+							console.log('setting field value', fieldName, newValue);
+							form.setFieldValue(fieldName, newValue);
+						}
+						if (!(form.getFieldMeta(fieldName))?.synced) {
+							form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, synced: true }));
 						}
 					}
-
-					// Update the form if the value has changed
-					if (JSON.stringify(prevValue) !== JSON.stringify(newValue)) {
-						// console.log('setting field value', fieldName, newValue);
-						form.setFieldValue(fieldName, newValue);
-					}
-					if (!(form.getFieldMeta(fieldName))?.synced) {
-						form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, synced: true }));
-					}
 				}
-			}
-		});
+			});
+		}
 
 		// Link picker queries
 		for (const [fieldName, link] of Object.entries(links)) {
@@ -119,7 +173,8 @@ export function useIDBForm<
 				form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, data: linkPickerData }));
 			});
 		}
-	}, []);
+		// TODO: check if this needs to be memoized to never change unless options change
+	}, [options]);
 
 	// TODO: this is just temporary. later, use an actual debounce library that will run after the user stops typing for a certain amount of time
 	const timeoutRef = useRef<NodeJS.Timeout>();
@@ -136,8 +191,14 @@ export function useIDBForm<
 	const customOnChange = (field: FieldApi<any, any>, value: any) => {
 		const oldValue = field.state.value;
 		field.handleChange(value);
-		const id = form.getFieldValue('id');
+		if (options.type === 'create') return;
+
 		form.setFieldMeta(field.name, prevMeta => ({ ...prevMeta, synced: false }));
+
+		// Skip update if errors exist
+		const errors = form.validateSync('change');
+		if (field.state.meta.errors.length > 0 || errors.hasErrored) return;
+		const id = form.getFieldValue('id');
 
 		const link = links[field.name];
 		if (link) {
@@ -147,25 +208,24 @@ export function useIDBForm<
 			const transactions = [];
 
 			if (cardinality === 'many') {
-				// Find the difference between the old and new values, unlink the old values and link the new values
+				// Find the difference between the old and new values, then unlink the old values and link the new values
 				const newValue = value as InstantValue[];
-				const prevValues = oldValue as InstantValue[];
-				console.log('prevValues', prevValues);
-				console.log('newValue', newValue);
+				// Imagine person A and B is linked. We unlink A (which updates) then unlink B (which doesn't update because the field requires at least one link and we have a validation error.). Now the field is empty, but when we link person C, we fail to unlink person B beause prevValue was null. The solution to this is to use the queryValue from the database as the prevValue instead of the field value
+				// TODO: For create form, you can't do this (use the field value instead)
+				const prevValues = queryValue?.[field.name] as InstantValue[];
 				const idsToUnlink = prevValues.filter((item: InstantValue) =>
 					!newValue.some(newItem => newItem.id === item.id),
 				).map(item => item.id);
 				const idsToLink = newValue.filter((item: InstantValue) =>
 					!prevValues.some(prevItem => prevItem.id === item.id),
 				).map(item => item.id);
-				console.log('linkresult', idsToUnlink, idsToLink);
 
 				if (idsToUnlink.length > 0) transactions.push(tx.unlink({ [field.name]: idsToUnlink }));
 				if (idsToLink.length > 0) transactions.push(tx.link({ [field.name]: idsToLink }));
 			} else if (cardinality === 'one') {
 				// Unlink the old value and link the new value
 				const newValue = field.state.value as InstantValue;
-				if ((oldValue as InstantValue).id !== newValue.id) {
+				if (!oldValue || (oldValue as InstantValue).id !== newValue.id) {
 					transactions.push(tx.link({ [field.name]: newValue.id }));
 				}
 			}

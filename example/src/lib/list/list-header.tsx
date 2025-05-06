@@ -1,18 +1,20 @@
-import { ActionIcon, Button, Modal, Space } from '@mantine/core';
+import { ActionIcon, Button, Divider, Modal, Space } from '@mantine/core';
 import { useDisclosure, useHotkeys } from '@mantine/hooks';
 import { LuPlus } from 'react-icons/lu';
 
-import { ReusableFormComponentProps } from '~client/lib/components/components';
+import { ReusableFormComponentProps, ReusableFormComponentProps2 } from '~client/lib/components/components';
 import { useIDBFormState } from '~instantdb-react-ui/utils/utils';
 
 export function ListHeader({
 	title,
 	entity,
 	modalContent: ModalContent,
+	modalContent2: ModalContent2,
 }: {
 	title: string
 	entity: string
 	modalContent: React.ComponentType<ReusableFormComponentProps>
+	modalContent2: React.ComponentType<ReusableFormComponentProps2>
 }) {
 	useHotkeys([
 		['meta+m', () => openCreateModal()],
@@ -36,6 +38,9 @@ export function ListHeader({
 						<Button disabled={!formState?.isValid()} type="submit" onClick={closeCreateModal}>Create {entity.slice(0, -1)}</Button>
 					</div>
 				</ModalContent>
+
+				<Divider my="md" />
+				<ModalContent2 onValidSubmit={closeCreateModal} type="create" />
 			</Modal>
 
 			{/* List Header */}

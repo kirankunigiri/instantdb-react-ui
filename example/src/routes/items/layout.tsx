@@ -8,6 +8,7 @@ import { ListHeader } from '~client/lib/list/list-header';
 import { OutletWrapper } from '~client/lib/outlet-wrapper';
 import { entityNames } from '~client/main';
 import ItemForm from '~client/routes/items/-form';
+import ItemForm2 from '~client/routes/items/-form2';
 
 type Item = InstaQLEntity<AppSchema, 'items'>;
 
@@ -24,7 +25,7 @@ function ItemList() {
 			{/* List View */}
 			<div className="left-list">
 				{/* Header */}
-				<ListHeader title="Items" entity={entityNames.items} modalContent={ItemForm} />
+				<ListHeader title="Items" entity={entityNames.items} modalContent={ItemForm} modalContent2={ItemForm2} />
 
 				{/* Search Input */}
 				<TextInput

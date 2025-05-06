@@ -141,7 +141,7 @@ function LogoHeaderV3() {
 	return (
 		<>
 			{/* bg-[#282828] */}
-			<div className="m-2 flex cursor-default select-none flex-col gap-2 rounded-md p-2 shadow-md">
+			<div className="m-2 flex cursor-default select-none flex-col gap-2 rounded-md p-2">
 
 				<div className="flex w-full flex-col items-center justify-center">
 					<code className="w-full text-sm font-bold">{SIDEBAR_TITLE}</code>
@@ -275,9 +275,9 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
 							</Tooltip>
 							<code className="text-sm font-bold text-white/80">+</code>
 
-							{/* Tamnstack Logo */}
+							{/* Tanstack Logo */}
 							<Tooltip openDelay={0} label="Tanstack Form">
-								<img src="https://tanstack.com/_build/assets/logo-color-600w-Er4SOkq1.png" alt="Zod Logo" className={`max-h-6 max-w-6 ${LOGO_TRANSITION}`} />
+								<img src="https://avatars.githubusercontent.com/u/72518640?s=200&v=4" alt="Tanstack Logo" className={`max-h-6 max-w-6 rounded-full ${LOGO_TRANSITION}`} />
 							</Tooltip>
 							<code className="text-sm font-bold text-white/80">+</code>
 

@@ -9,7 +9,7 @@ import { IDBList, type IDBListProps } from '~instantdb-react-ui/list/list';
 
 type ListWrapperProps<T> = IDBListProps<T> & {
 	route: RouteFullPaths
-	itemId?: number | string
+	itemId?: string
 	search?: SearchParams
 };
 
@@ -24,7 +24,7 @@ function List<T extends Record<string, any>>({ itemId, search, route, ...idbList
 				noResults={idbListProps.noResults ?? <p className="text-gray-500">No results found</p>}
 
 				// Render
-				render={(item: T, id: string | number) => (
+				render={(item: T, id: string) => (
 					<Link
 						key={id}
 						to={route}

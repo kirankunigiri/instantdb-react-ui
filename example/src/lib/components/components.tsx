@@ -3,6 +3,7 @@ import { DateTimePicker, DateTimePickerProps } from '@mantine/dates';
 import { ReactNode } from 'react';
 
 import { IDBFormProps } from '~instantdb-react-ui/form/form';
+import { IDBFormType } from '~instantdb-react-ui/new-form/use-idbform';
 
 // Checkbox Wrapper to allow boolean values
 interface CheckboxWrapperProps extends Omit<CheckboxProps, 'value'> {
@@ -38,3 +39,8 @@ export function DateInputWrapper({ value, onChange, ...props }: DateInputWrapper
 export type ReusableFormComponentProps = Omit<IDBFormProps, 'id' | 'entity' | 'fields' | 'children'> & {
 	children?: ReactNode
 };
+
+export interface ReusableFormComponentProps2 {
+	type: IDBFormType
+	onValidSubmit?: () => void
+}
