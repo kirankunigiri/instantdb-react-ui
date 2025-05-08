@@ -17,7 +17,7 @@ export const Route = createFileRoute('/items')({
 });
 
 function ItemList() {
-	const params = Route.useParams() as { id?: number };
+	const params = Route.useParams() as { id?: string };
 
 	return (
 		<div className="page">

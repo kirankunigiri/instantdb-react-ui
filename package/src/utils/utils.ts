@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DataAttrDef, LinkAttrDef } from '@instantdb/react';
+import { FieldApi } from '@tanstack/react-form';
 import { useCallback, useRef, useState } from 'react';
-import { z, ZodTypeAny } from 'zod';
+import { z, ZodError, ZodTypeAny } from 'zod';
 
 import { IDBFormState } from '../form/form';
 
@@ -66,4 +67,10 @@ export const useIDBFormState = () => {
 	}, [formRef]);
 
 	return { formRef, formState, handleFormChange };
+};
+
+/** Get readable error message for field. Returns null if the field hasn't been touched */
+export const getErrorMessageForField = (field: FieldApi<any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any>) => {
+	if (!field.state.meta.isDirty) return null;
+	return (field.state.meta.errors as ZodError[]).map(error => error.message).join(', ');
 };

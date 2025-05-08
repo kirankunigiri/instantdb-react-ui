@@ -1,87 +1,135 @@
 import { InstaQLParams } from '@instantdb/react';
-import { Button, Checkbox, MultiSelect, TextInput } from '@mantine/core';
-import { FieldApi, formOptions, ReactFormExtendedApi, useStore } from '@tanstack/react-form';
+import { Button, Checkbox, Divider, MultiSelect, NumberInput, TextInput } from '@mantine/core';
+import { FieldApi, FormApi, formOptions, ReactFormExtendedApi, useForm, useStore } from '@tanstack/react-form';
 import { toast } from 'sonner';
+import { z, ZodError } from 'zod';
 
 import schema, { ITEM_CATEGORY } from '~client/db/instant.schema';
 import { ReusableFormComponentProps2 } from '~client/lib/components/components';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
 import { useRouteId } from '~client/lib/utils';
-import { ExtractFormData, useIDBForm } from '~instantdb-react-ui/index';
+import { createIdbEntityZodSchema } from '~instantdb-react-ui/form/zod';
+import { ExtractFormData, getErrorMessageForField, useIDBForm } from '~instantdb-react-ui/index';
+import { useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
 
 const getItemQuery = (id: string) => ({ items: { room: {}, owner: { room: {} }, $: { where: { id } } } } satisfies InstaQLParams<typeof schema>);
 type FormData = ExtractFormData<typeof schema, ReturnType<typeof getItemQuery>, 'items'>;
+
+const userSchema = z.object({
+	age: z.number().gte(13, 'You must be 13 to make an account'),
+	number: z.number().gte(20, 'Pick a number above 20'),
+});
 
 function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 	const id = useRouteId();
 	console.log('rendering form');
 
-	const itemForm = useIDBForm({
-		type,
-		schema,
-		entity: 'items',
-		query: getItemQuery(id),
-		debounceFields: {
-			name: 500,
-		},
+	const zodEntity = createIdbEntityZodSchema(schema, 'items');
+	// userSchema.shape.
+
+	const form = useForm({
 		defaultValues: {
-			name: '',
-			shareable: false,
-			category: ITEM_CATEGORY.Other,
+			age: 0,
+			number: 0,
 		},
-		linkPickerQueries: {
-			// Owner picker - get list of all people and their rooms (to filter by room later)
-			owner: { persons: { room: {}, $: { order: { name: 'asc' } } } },
-			// Room picker - get list of all rooms
-			room: { rooms: { $: { order: { name: 'asc' } } } },
-		},
-		// listeners: {
-		// 	onMount: ({ formApi }) => {
-		// 	  // custom logging service
-		// 	  loggingService('mount', formApi.state.values)
-		// 	},
-
-		// 	onChange: ({ formApi, fieldApi }) => {
-		// 	  // autosave logic
-		// 	  if (formApi.state.isValid) {
-		// 		handleIdbUpdate()
-		// 	  }
-
-		// 	  // fieldApi represents the field that triggered the event.
-		// 	  console.log(fieldApi.name, fieldApi.state.value)
-		// 	},
-		// 	onChangeDebounceMs: 500,
-		//   },
-		onSubmit: async ({ value, idbSubmit }) => {
-			console.log('valid submit');
-			try {
-				// TODO: fix idbSubmit first
-				await idbSubmit(value);
-				onValidSubmit?.();
-			} catch (error) {
-				console.error(error);
-				toast.error('Error submitting form');
-			}
-		},
-		onSubmitInvalid: (errors) => {
-			console.log('invalid submit');
-			console.log(errors);
+		validators: {
+			onChange: userSchema,
 		},
 	});
+
+	const itemForm = useIDBForm2({
+		idbOptions: {
+			type: type,
+			schema: schema,
+			entity: 'items',
+			query: getItemQuery(id),
+			// Optional. Prioritizes custom overrides (here) -> zod defaults -> instant defaults
+			defaultValues: {
+				name: '',
+				shareable: true,
+				category: ITEM_CATEGORY.Other,
+			},
+			// Optional: Define queries for relation fields
+			linkPickerQueries: {
+				// Owner picker - get list of all people and their rooms (to filter by room later)
+				owner: { persons: { room: {}, $: { order: { name: 'asc' } } } },
+				// Room picker - get list of all rooms
+				room: { rooms: { $: { order: { name: 'asc' } } } },
+			},
+		},
+		tanstackOptions: (handleIdbUpdate, handleIdbCreate) => ({
+			listeners: {
+				onChange: ({ formApi, fieldApi }) => {
+					if (type !== 'update') return;
+					formApi.validate('change');
+					console.log('onchange listener triggered', formApi.state.isFormValid);
+					if (formApi.state.isValid) handleIdbUpdate();
+					// fieldApi represents the field that triggered the event.
+					// console.log(fieldApi.name, fieldApi.state.value);
+				},
+			},
+			onSubmit: async ({ value }) => {
+				console.log('valid submit');
+				try {
+					handleIdbCreate();
+					onValidSubmit?.();
+				} catch (error) {
+					console.error(error);
+					toast.error('Error submitting form');
+				}
+			},
+		}),
+	});
+
+	// const itemForm = useIDBForm({
+	// 	type,
+	// 	schema,
+	// 	entity: 'items',
+	// 	query: getItemQuery(id),
+	// 	debounceFields: {
+	// 		name: 500,
+	// 	},
+	// 	defaultValues: {
+	// 		name: '',
+	// 		shareable: false,
+	// 		category: ITEM_CATEGORY.Other,
+	// 	},
+	// 	linkPickerQueries: {
+	// 		// Owner picker - get list of all people and their rooms (to filter by room later)
+	// 		owner: { persons: { room: {}, $: { order: { name: 'asc' } } } },
+	// 		// Room picker - get list of all rooms
+	// 		room: { rooms: { $: { order: { name: 'asc' } } } },
+	// 	},
+	// 	onSubmit: async ({ value, idbSubmit }) => {
+	// 		console.log('valid submit');
+	// 		try {
+	// 			// TODO: fix idbSubmit first
+	// 			await idbSubmit(value);
+	// 			onValidSubmit?.();
+	// 		} catch (error) {
+	// 			console.error(error);
+	// 			toast.error('Error submitting form');
+	// 		}
+	// 	},
+	// 	onSubmitInvalid: (errors) => {
+	// 		console.log('invalid submit');
+	// 		console.log(errors);
+	// 	},
+	// });
 
 	return (
 		<div className="flex flex-col gap-1">
 			<p className="text-lg font-bold">Item Form</p>
 			<itemForm.Field
-				name="items"
+				name="name"
 				children={field => (
 					<TextInput
 						className={`${type === 'update' && !field.idb.synced ? 'unsynced' : ''}`}
-						error={field.state.meta.errors.join(', ')}
+						error={getErrorMessageForField(field)}
 						// label={`Name ${type === 'update' && `(Synced: ${JSON.stringify(field.idb.synced)})`}`}
 						label={`Name ${type === 'update' && field.idb.synced ? '(Synced)' : '(Unsynced)'}`}
 						value={field.state.value}
-						onChange={e => field.idb.handleChange(e.target.value)}
+						onChange={e => field.handleChange(e.target.value)}
 					/>
 				)}
 			/>
@@ -91,7 +139,7 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 					<Checkbox
 						label="Shareable"
 						checked={field.state.value}
-						onChange={e => field.idb.handleChange(e.target.checked)}
+						onChange={e => field.handleChange(e.target.checked)}
 					/>
 				)}
 			/>
@@ -99,9 +147,10 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 				name="category"
 				children={field => (
 					<SearchableSelect
+						error={getErrorMessageForField(field)}
 						label="Category"
 						value={field.state.value}
-						onChange={value => field.idb.handleChange(value as ITEM_CATEGORY)}
+						onChange={value => field.handleChange(value as ITEM_CATEGORY)}
 						data={Object.values(ITEM_CATEGORY).map(category => ({ label: category, value: category }))}
 					/>
 				)}
@@ -117,26 +166,59 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 							value={field.state.value?.id}
 							data={linkData.map(item => ({ label: item!.name, value: item!.id }))}
 							onChange={(value) => {
-								// TODO: This is broken, might need to await the handleChange
-								console.log('room changed to', value);
-								// itemForm.setFieldValue('owner', []);
-								// field.handleChange(linkData.find(item => item!.id === value)!);
-								field.idb.handleChange(linkData.find(item => item!.id === value)!);
+								itemForm.setFieldValue('owner', []);
+								field.handleChange(linkData.find(item => item!.id === value)!);
 							}}
 						/>
 					);
 				}}
 			/>
-			{/* <itemForm.Field
+			<itemForm.Field
 				name="owner"
 				children={field => <OwnerField field={field} form={itemForm} />}
-			/> */}
+			/>
+
+			<Divider my="xl" />
+			<div>
+				<form.Field
+					name="age"
+					// listeners={{
+					// 	onChange: ({ fieldApi, value }) => {
+					// 		fieldApi.validate('change');
+					// 		console.log(`age changed to ${value}`, fieldApi.getMeta().errors.length);
+					// 	},
+					// }}
+					children={(field) => {
+						return (
+							<NumberInput
+								label={`${field.state.meta.isDirty}`}
+								value={field.state.value}
+								onChange={e => field.handleChange(e)}
+								error={getErrorMessageForField(field)}
+							/>
+						);
+					}}
+				/>
+				<form.Field
+					name="number"
+					children={(field) => {
+						return (
+							<NumberInput
+								label={`${field.state.meta.isDirty}`}
+								value={field.state.value}
+								onChange={e => field.handleChange(e)}
+								error={getErrorMessageForField(field)}
+							/>
+						);
+					}}
+				/>
+			</div>
 			{type === 'create' && (
 				<itemForm.Subscribe
-					selector={state => [state.canSubmit, state.isSubmitting]}
-					children={([canSubmit, isSubmitting]) => (
+					selector={state => [state.canSubmit, state.isSubmitting, state.isPristine]}
+					children={([canSubmit, isSubmitting, isPristine]) => (
 						<div className="flex justify-end">
-							<Button disabled={!canSubmit} onClick={() => itemForm.handleSubmit()} loading={isSubmitting}>
+							<Button disabled={!canSubmit || isPristine} onClick={() => itemForm.handleSubmit()} loading={isSubmitting}>
 								Submit
 							</Button>
 						</div>
@@ -147,18 +229,15 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 	);
 }
 
-// TODO: Change owner filter based on the room
 function OwnerField({ field, form }: {
-	field: FieldApi<FormData, 'owner'>
-	form: ReactFormExtendedApi<FormData>
+	field: FieldApi<FormData, 'owner', FormData['owner'], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>
+	form: FormApi<FormData, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>
 }) {
 	const room = useStore(form.store, state => state.values.room);
 	const disabled = !room;
 	const roomId = room ? room.id : '';
 	const linkData = field.idb.data || [];
 	const filteredLinkData = linkData.filter(person => person.room!.id === roomId);
-	console.log(field.state.value?.map(item => item!.id));
-	console.log(filteredLinkData.map(item => ({ label: item!.name, value: item!.id })));
 
 	return (
 		<MultiSelect
@@ -166,19 +245,10 @@ function OwnerField({ field, form }: {
 			label={`Owner(s) ${field.state.value?.map(item => item!.name).join(', ')}`}
 			value={field.state.value?.map(item => item!.id)}
 			data={filteredLinkData.map(item => ({ label: item!.name, value: item!.id }))}
-			// onChange={value => field.idb.handleChange(linkData.filter(link => value.includes(link!.id)))}
 			onChange={(value) => {
-				// TODO: need to update owner and room at the same time in case room was changed
 				field.handleChange(linkData.filter(link => value.includes(link!.id)));
-				setTimeout(() => {
-					form.handleSubmit();
-				}, 1);
-				// field.idb.handleChange(linkData.filter(link => value.includes(link!.id)));
-				// form.setFieldValue('room', form.getFieldValue('room'));
-				// form.setFieldValue('room', form.getFieldValue('room'));
-				// form.handleSubmit();
 			}}
-			error={field.state.meta.errors.join(', ')}
+			error={getErrorMessageForField(field)}
 		/>
 	);
 }

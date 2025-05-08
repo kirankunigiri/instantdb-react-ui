@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import schema, { ITEM_CATEGORY } from '~client/db/instant.schema';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
 import { db } from '~client/main';
+import { useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
 import { ExtractFormData, useIDBForm } from '~instantdb-react-ui/new-form/use-idbform';
 
 export const Route = createFileRoute('/rooms')({
@@ -21,7 +22,88 @@ const personId = '0060585b-d673-4b2b-ab13-a1c013fff617';
 
 const itemQuery = { items: { room: {}, owner: { room: {} }, $: { where: { id: itemId } } } } satisfies InstaQLParams<typeof schema>;
 
+interface TestFormData {
+	name: string
+	id: string
+}
+
 function TypedForm() {
+	// const testForm = useForm<TestFormData, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>({
+	// 	defaultValues: {
+	// 		name: 'hello',
+	// 	},
+	// 	listeners: {
+	// 		onChange: ({ formApi, fieldApi }) => {
+	// 			formApi.setFieldValue('name', 'sdfsdf');
+	// 			// autosave logic
+	// 			console.log(formApi.state.isValid);
+	// 			// fieldApi represents the field that triggered the event.
+	// 			console.log(fieldApi.name, fieldApi.state.value);
+	// 		},
+	// 	},
+	// });
+	// testForm.setFieldValue('name', '234');
+
+	const testForm2 = useIDBForm2({
+		idbOptions: {
+			type: 'update',
+			schema: schema,
+			entity: 'items',
+			query: itemQuery,
+			defaultValues: {
+				name: 'Bob',
+				shareable: false,
+				category: 'Other',
+			},
+			linkPickerQueries: {
+				// Optional: Define queries for relation fields
+				owner: { persons: { $: { order: { name: 'asc' } } } },
+				room: { rooms: { $: { order: { name: 'asc' } } } },
+			},
+		},
+		tanstackOptions: handleIdbUpdate => ({
+			listeners: {
+				onChange: ({ formApi, fieldApi }) => {
+					console.log('onchange listener triggered');
+
+					handleIdbUpdate();
+					// formApi.setFieldValue('name', 'sdfsdf');
+					// console.log(formApi.state.isValid);
+					// fieldApi represents the field that triggered the event.
+					console.log(fieldApi.name, fieldApi.state.value);
+				},
+			},
+		}),
+	});
+
+	console.log(testForm2.newTestString);
+
+	// const testForm2 = useIDBForm2(handleIdbUpdate => ({
+	// 	type: 'update',
+	// 	schema: schema,
+	// 	entity: 'items',
+	// 	query: { items: { $: { where: { id: 'some-item-id' } } } },
+	// 	defaultValues: {
+	// 		name: '',
+	// 		shareable: false,
+	// 		category: 'Other',
+	// 	},
+	// 	linkPickerQueries: {
+	// 		// Optional: Define queries for relation fields
+	// 		owner: { persons: { $: { order: { name: 'asc' } } } },
+	// 		room: { rooms: { $: { order: { name: 'asc' } } } },
+	// 	},
+	// 	listeners: {
+	// 		onChange: ({ formApi, fieldApi }) => {
+	// 			fieldApi.form.getFieldValue('');
+	// 			// autosave logic
+	// 			console.log(formApi.state.isValid);
+	// 			// fieldApi represents the field that triggered the event.
+	// 			console.log(fieldApi.name, fieldApi.state.value);
+	// 		},
+	// 	},
+	// }));
+
 	const itemForm = useIDBForm({
 		type: 'update',
 		schema,
@@ -42,7 +124,42 @@ function TypedForm() {
 	console.log('itemForm.getFieldValue("room")', itemForm.getFieldValue('room'));
 
 	return (
+
 		<>
+			<p>Test Form 2</p>
+			<testForm2.Field
+				name="name"
+				asyncDebounceMs={1000}
+				children={field => (
+					<TextInput
+						value={field.state.value}
+						onChange={e => field.handleChange(e.target.value)}
+					/>
+				)}
+			/>
+			<testForm2.Field
+				name="room"
+				children={(field) => {
+					const linkData = field.idb.data || [];
+					return (
+						<Select
+							label="Room"
+							clearable
+							error={field.state.meta.errors.join(', ')}
+							value={field.state.value?.id}
+							data={linkData.map(item => ({ label: item!.name, value: item!.id }))}
+							onChange={(value) => {
+								// TODO: This is broken, might need to await the handleChange
+								itemForm.setFieldValue('owner', []);
+								field.handleChange(linkData.find(item => item!.id === value)!);
+							}}
+						/>
+					);
+				}}
+			/>
+
+			<Divider my="xl" />
+
 			<form className="flex flex-col gap-1">
 				<p className="text-lg font-bold">Item Form</p>
 				<itemForm.Field

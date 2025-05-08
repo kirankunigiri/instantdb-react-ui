@@ -23,6 +23,7 @@ export interface SearchableSelectProps {
 	onChange?: (value: BaseValue | null) => void
 	onBlur?: () => void
 	onFocus?: () => void
+	error?: string | null
 	defaultValue?: BaseValue | null
 	placeholder?: string
 	searchPlaceholder?: string
@@ -118,6 +119,7 @@ export function SearchableSelect(props: SearchableSelectProps) {
 		>
 			<Combobox.Target>
 				<InputBase
+					error={props.error}
 					required={props.required}
 					label={props.label}
 					description={props.description}

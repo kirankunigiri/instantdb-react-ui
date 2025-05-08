@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Divider, Modal, Space } from '@mantine/core';
+import { ActionIcon, Button, Divider, Modal, Space, TextInput } from '@mantine/core';
 import { useDisclosure, useHotkeys } from '@mantine/hooks';
 import { LuPlus } from 'react-icons/lu';
 
@@ -25,22 +25,25 @@ export function ListHeader({
 		{ open: openCreateModal, close: closeCreateModal },
 	] = useDisclosure(false);
 
+	console.log('rendering list header');
+
 	// Use form state to update button disabled state
-	const { formRef, formState, handleFormChange } = useIDBFormState();
+	// const { formRef, formState, handleFormChange } = useIDBFormState();
 
 	return (
 		<>
 			{/* Create Modal */}
 			<Modal opened={createModalOpened} onClose={closeCreateModal} title={`Create ${entity}`}>
-				<ModalContent type="create" formRef={formRef} onFormChange={handleFormChange}>
+				{/* <ModalContent type="create" formRef={formRef} onFormChange={handleFormChange}>
 					<Space h="md" />
 					<div className="flex justify-end">
 						<Button disabled={!formState?.isValid()} type="submit" onClick={closeCreateModal}>Create {entity.slice(0, -1)}</Button>
 					</div>
-				</ModalContent>
+				</ModalContent> */}
 
 				<Divider my="md" />
-				<ModalContent2 onValidSubmit={closeCreateModal} type="create" />
+				{/* <TextInput /> */}
+				<ModalContent2 type="create" onValidSubmit={closeCreateModal} />
 			</Modal>
 
 			{/* List Header */}

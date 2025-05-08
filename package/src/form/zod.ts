@@ -1,8 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AttrsDefs, EntityDef, InstantSchemaDef, LinkAttrDef, ValueTypes } from '@instantdb/react';
+import { AttrsDefs, EntitiesDef, EntityDef, InstantSchemaDef, LinkAttrDef, LinksDef, ValueTypes } from '@instantdb/react';
 import { z } from 'zod';
 
 import { generateZodEntitySchema } from '../utils/utils';
+
+export interface IContainEntitiesAndLinks<
+	Entities extends EntitiesDef,
+	Links extends LinksDef<Entities>,
+> {
+	entities: Entities
+	links: Links
+}
 
 /**
  * Maps InstantDB types to Zod types.
@@ -45,6 +53,76 @@ function getDefaultValueByType(valueType: string): any {
 }
 
 type BasicEntity = EntityDef<AttrsDefs, Record<string, LinkAttrDef<any, any>>, void>;
+
+export function createIdbEntityZodSchema<
+	TSchema extends IContainEntitiesAndLinks<EntitiesDef, any>,
+	TEntity extends keyof TSchema['entities'],
+>(
+	schema: TSchema,
+	entityName: TEntity,
+): {
+		zodSchema: z.ZodObject<any>
+		defaults: Record<string, any>
+	} {
+	const entity = schema.entities[entityName as string] as BasicEntity;
+	const entityAttrs = entity.attrs;
+	const schemaObj: Record<string, z.ZodType> = {};
+	const defaults: Record<string, any> = {};
+
+	// Handle attributes
+	Object.entries(entityAttrs).forEach(([key, attr]) => {
+		const transform = (attr as any)._zodTransform;
+		let fieldSchema: z.ZodType;
+
+		if (transform && typeof transform === 'function') {
+			try {
+				fieldSchema = transform();
+				// Extract default if it exists from Zod schema
+				if ('_def' in fieldSchema && 'defaultValue' in fieldSchema._def) {
+					const defaultValue = fieldSchema._def.defaultValue;
+					defaults[key] = typeof defaultValue === 'function' ? defaultValue() : defaultValue;
+				} else {
+					// If no Zod default, use valueType default
+					defaults[key] = getDefaultValueByType(attr.valueType);
+				}
+			} catch (e) {
+				// fallback to default schema
+				fieldSchema = getDefaultSchema(attr.valueType);
+				defaults[key] = getDefaultValueByType(attr.valueType);
+			}
+		} else {
+			// fallback to default schema
+			fieldSchema = getDefaultSchema(attr.valueType);
+			defaults[key] = getDefaultValueByType(attr.valueType);
+		}
+
+		schemaObj[key] = fieldSchema;
+	});
+
+	// Handle links
+	Object.entries(entity.links).forEach(([key, link]) => {
+		if (link.cardinality === 'one') {
+			defaults[key] = null;
+			if (link._zodTransform) {
+				schemaObj[key] = link._zodTransform();
+			} else {
+				schemaObj[key] = generateZodEntitySchema().nullable();
+			}
+		} else {
+			defaults[key] = [];
+			if (link._zodTransform) {
+				schemaObj[key] = link._zodTransform();
+			} else {
+				schemaObj[key] = z.array(generateZodEntitySchema().nullable());
+			}
+		}
+	});
+
+	return {
+		zodSchema: z.object(schemaObj),
+		defaults,
+	};
+}
 
 /** Creates a zod schema and default values for useForm's initialValues parameter */
 export function createEntityZodSchemaV3(entity: BasicEntity): {

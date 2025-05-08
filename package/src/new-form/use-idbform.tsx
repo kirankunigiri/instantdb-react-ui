@@ -33,7 +33,7 @@ export function useIDBForm<
 	TQuery extends InstaQLParams<TSchema>,
 	TLinkQueries extends Partial<Record<keyof TSchema['entities'][TEntity]['links'], InstaQLParams<TSchema>>>, // ideally, we should limit this to only links that were in the query, but for now we allow all links
 >(
-	options: Omit<FormOptions<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never>, 'defaultValues' | 'onSubmit'> & {
+	options: Omit<FormOptions<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>, 'defaultValues' | 'onSubmit'> & {
 		type: IDBFormType
 		schema: TSchema
 		entity: TEntity
