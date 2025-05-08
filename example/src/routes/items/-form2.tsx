@@ -1,15 +1,14 @@
 import { InstaQLParams } from '@instantdb/react';
 import { Button, Checkbox, Divider, MultiSelect, NumberInput, TextInput } from '@mantine/core';
-import { FieldApi, FormApi, formOptions, ReactFormExtendedApi, useForm, useStore } from '@tanstack/react-form';
+import { FieldApi, FormApi, useForm, useStore } from '@tanstack/react-form';
 import { toast } from 'sonner';
-import { z, ZodError } from 'zod';
+import { z } from 'zod';
 
 import schema, { ITEM_CATEGORY } from '~client/db/instant.schema';
 import { ReusableFormComponentProps2 } from '~client/lib/components/components';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
 import { useRouteId } from '~client/lib/utils';
-import { createIdbEntityZodSchema } from '~instantdb-react-ui/form/zod';
-import { ExtractFormData, getErrorMessageForField, useIDBForm } from '~instantdb-react-ui/index';
+import { ExtractFormData, getErrorMessageForField } from '~instantdb-react-ui/index';
 import { useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
 
 const getItemQuery = (id: string) => ({ items: { room: {}, owner: { room: {} }, $: { where: { id } } } } satisfies InstaQLParams<typeof schema>);
@@ -23,9 +22,6 @@ const userSchema = z.object({
 function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 	const id = useRouteId();
 	console.log('rendering form');
-
-	const zodEntity = createIdbEntityZodSchema(schema, 'items');
-	// userSchema.shape.
 
 	const form = useForm({
 		defaultValues: {
@@ -49,6 +45,9 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 				shareable: true,
 				category: ITEM_CATEGORY.Other,
 			},
+			serverDebounceFields: {
+				name: 500,
+			},
 			// Optional: Define queries for relation fields
 			linkPickerQueries: {
 				// Owner picker - get list of all people and their rooms (to filter by room later)
@@ -57,7 +56,8 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 				room: { rooms: { $: { order: { name: 'asc' } } } },
 			},
 		},
-		tanstackOptions: (handleIdbUpdate, handleIdbCreate) => ({
+		tanstackOptions: ({ handleIdbUpdate, handleIdbCreate, zodSchema }) => ({
+			validators: { onChange: zodSchema },
 			listeners: {
 				onChange: ({ formApi, fieldApi }) => {
 					if (type !== 'update') return;
@@ -69,7 +69,6 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 				},
 			},
 			onSubmit: async ({ value }) => {
-				console.log('valid submit');
 				try {
 					handleIdbCreate();
 					onValidSubmit?.();

@@ -1,14 +1,13 @@
 import { InstaQLParams } from '@instantdb/react';
-import { Checkbox, Divider, MultiSelect, Select, Space, TextInput } from '@mantine/core';
+import { Divider, MultiSelect, Select, Space, TextInput } from '@mantine/core';
 import { FieldApi, ReactFormExtendedApi, useForm, useStore } from '@tanstack/react-form';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
-import schema, { ITEM_CATEGORY } from '~client/db/instant.schema';
-import { SearchableSelect } from '~client/lib/components/searchable-select';
+import schema from '~client/db/instant.schema';
 import { db } from '~client/main';
 import { useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
-import { ExtractFormData, useIDBForm } from '~instantdb-react-ui/new-form/use-idbform';
+import { ExtractFormData } from '~instantdb-react-ui/new-form/use-idbform';
 
 export const Route = createFileRoute('/rooms')({
 	component: RouteComponent,
@@ -104,25 +103,6 @@ function TypedForm() {
 	// 	},
 	// }));
 
-	const itemForm = useIDBForm({
-		type: 'update',
-		schema,
-		entity: 'items',
-		query: itemQuery,
-		debounceFields: { name: 500 },
-		defaultValues: {
-			name: '',
-			shareable: false,
-			category: ITEM_CATEGORY.Other,
-		},
-		linkPickerQueries: {
-			owner: { persons: { room: {}, $: { order: { name: 'asc' } } } },
-			room: { rooms: { $: { order: { name: 'asc' } } } },
-		},
-	});
-
-	console.log('itemForm.getFieldValue("room")', itemForm.getFieldValue('room'));
-
 	return (
 
 		<>
@@ -150,77 +130,13 @@ function TypedForm() {
 							data={linkData.map(item => ({ label: item!.name, value: item!.id }))}
 							onChange={(value) => {
 								// TODO: This is broken, might need to await the handleChange
-								itemForm.setFieldValue('owner', []);
+								testForm2.setFieldValue('owner', []);
 								field.handleChange(linkData.find(item => item!.id === value)!);
 							}}
 						/>
 					);
 				}}
 			/>
-
-			<Divider my="xl" />
-
-			<form className="flex flex-col gap-1">
-				<p className="text-lg font-bold">Item Form</p>
-				<itemForm.Field
-					name="name"
-					children={field => (
-						<>
-							<p>Synced: {JSON.stringify(field.idb.synced)}</p>
-							<TextInput
-								label="Name"
-								value={field.state.value}
-								onChange={e => field.idb.handleChange(e.target.value)}
-							/>
-						</>
-					)}
-				/>
-				<itemForm.Field
-					name="shareable"
-					children={field => (
-						<Checkbox
-							label="Shareable"
-							checked={field.state.value}
-							onChange={e => field.idb.handleChange(e.target.checked)}
-						/>
-					)}
-				/>
-				<itemForm.Field
-					name="category"
-					children={field => (
-						<SearchableSelect
-							label="Category"
-							value={field.state.value}
-							onChange={value => field.idb.handleChange(value as ITEM_CATEGORY)}
-							data={Object.values(ITEM_CATEGORY).map(category => ({ label: category, value: category }))}
-						/>
-					)}
-				/>
-				<itemForm.Field
-					name="room"
-					children={(field) => {
-						const linkData = field.idb.data || [];
-						return (
-							<Select
-								label="Room"
-								clearable
-								error={field.state.meta.errors.join(', ')}
-								value={field.state.value?.id}
-								data={linkData.map(item => ({ label: item!.name, value: item!.id }))}
-								onChange={(value) => {
-									// TODO: This is broken, might need to await the handleChange
-									itemForm.setFieldValue('owner', []);
-									field.idb.handleChange(linkData.find(item => item!.id === value)!);
-								}}
-							/>
-						);
-					}}
-				/>
-				<itemForm.Field
-					name="owner"
-					children={field => <OwnerField field={field} itemForm={itemForm} />}
-				/>
-			</form>
 
 			{/* <Space h="lg" />
 			<p className="text-lg font-bold">Person Form</p>

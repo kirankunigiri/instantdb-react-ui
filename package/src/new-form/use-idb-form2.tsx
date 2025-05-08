@@ -3,6 +3,7 @@ import { TransactionChunk } from '@instantdb/core';
 import { EntitiesDef, id, InstantSchemaDef, InstaQLParams, InstaQLResult, LinksDef } from '@instantdb/react';
 import { DeepValue, FieldApi, FormApi, FormOptions, formOptions, useForm } from '@tanstack/react-form';
 import { useCallback, useEffect, useRef } from 'react';
+import { z } from 'zod';
 
 import { EntityLinks } from '..';
 import { createEntityZodSchemaV3 } from '../form/zod';
@@ -28,6 +29,17 @@ interface InstantValue {
 
 export type IDBFormType = 'update' | 'create';
 
+/** API for the IDB Form. This is passed to the tanstackOptions callback and can be accessed by the returned form */
+interface IDBFormApi {
+	/** Updates the database with the current form values */
+	handleIdbUpdate: () => void
+	/** Creates a new entity in the database with the current form values */
+	handleIdbCreate: () => void
+	/** Zod schema for the form entity */
+	zodSchema: z.ZodObject<any>
+}
+
+/** An InstantDB wrapper for Tanstack Form. Gain type-safety and automatic database syncing. */
 export function useIDBForm2<
 	TSchema extends IContainEntitiesAndLinks<EntitiesDef, any>,
 	TEntity extends keyof TSchema['entities'],
@@ -35,33 +47,119 @@ export function useIDBForm2<
 	TLinkQueries extends Partial<Record<keyof TSchema['entities'][TEntity]['links'], InstaQLParams<TSchema>>>,
 >(
 	options: {
-		idbOptions: Omit<FormOptions<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>, 'defaultValues'> & {
+		idbOptions: Omit<FormOptions<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never, any, any, any, any, any, any, any, any, any>, 'defaultValues'> & {
 			type: IDBFormType
 			schema: TSchema
 			entity: TEntity
 			query: TQuery
 			linkPickerQueries?: TLinkQueries
 			defaultValues?: Partial<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never>
+			serverDebounceFields?: Partial<Record<keyof (NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never), number>>
+			serverThrottleFields?: Partial<Record<keyof (NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never), number>>
 		}
-		tanstackOptions: (handleIdbUpdate: () => void, handleIdbCreate: () => void) => Omit<FormOptions<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>, 'defaultValues'>
+		tanstackOptions: (idbApi: IDBFormApi) => Omit<FormOptions<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never, any, any, any, any, any, any, any, any, any>, 'defaultValues'>
 	},
 ) {
 	type FormData = NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never;
 	type MyFormOptions = FormOptions<FormData, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>;
 
+	// Refs for managing timers and state
+	const timerRef = useRef<NodeJS.Timeout>(null);
+	const lastUpdateRef = useRef<Record<string, number>>({});
+	const pendingThrottledUpdatesRef = useRef<Record<string, boolean>>({});
+	const pendingFieldRef = useRef<string | null>(null);
+	const throttleTimerRef = useRef<Record<string, NodeJS.Timeout>>({});
+
+	// Cleanup timers
+	useEffect(() => {
+		return () => {
+			if (timerRef.current) clearTimeout(timerRef.current);
+			Object.values(throttleTimerRef.current).forEach(clearTimeout);
+			pendingFieldRef.current = null;
+		};
+	}, []);
+
 	/** Updates the database with the current form values */
 	const handleIdbUpdate = useCallback(() => {
 		if (options.idbOptions.type !== 'update' || !form) return;
 
-		const formState = form.store.state.values;
-		const formStateKeys = Object.keys(formState as any);
+		// For reference, this is what the update code does without any debounce/throttle
+		// const formState = form.store.state.values;
+		// const formStateKeys = Object.keys(formState as any);
+		// let transactions: TransactionChunk<InstantSchemaDef<any, any, any>, string>[] = [];
+		// for (const fieldName of formStateKeys) {
+		// 	transactions = transactions.concat(updateIDB(fieldName));
+		// }
+		// if (transactions.length > 0) db.transact(transactions);
 
-		let transactions: TransactionChunk<InstantSchemaDef<any, any, any>, string>[] = [];
-		for (const fieldName of formStateKeys) {
-			transactions = transactions.concat(updateIDB(fieldName));
+		const formStateKeys = Object.keys(form.store.state.values as any);
+		const fieldsToUpdate = formStateKeys.filter(checkIDBNeedsUpdate);
+		if (fieldsToUpdate.length === 0) return;
+
+		// Handle multiple fields or different pending field - immediate update
+		if (fieldsToUpdate.length > 1 || (pendingFieldRef.current && !fieldsToUpdate.includes(pendingFieldRef.current))) {
+			clearTimeout(timerRef.current);
+			timerRef.current = pendingFieldRef.current = null;
+			pendingThrottledUpdatesRef.current = {};
+
+			const transactions = fieldsToUpdate.flatMap(getIDBUpdateTransactions);
+			if (transactions.length > 0) db.transact(transactions);
+			return;
 		}
-		if (transactions.length > 0) db.transact(transactions);
-		console.log('finished server update');
+
+		const fieldName = fieldsToUpdate[0];
+		const debounceTime = options.idbOptions.serverDebounceFields?.[fieldName] ?? 0;
+		const throttleTime = options.idbOptions.serverThrottleFields?.[fieldName] ?? 0;
+
+		const executeUpdate = () => {
+			const transactions = getIDBUpdateTransactions(fieldName);
+			if (transactions.length > 0) db.transact(transactions);
+			return Date.now();
+		};
+
+		// Handle debounce
+		if (debounceTime > 0) {
+			clearTimeout(timerRef.current);
+			pendingFieldRef.current = fieldName;
+			timerRef.current = setTimeout(() => {
+				executeUpdate();
+				timerRef.current = pendingFieldRef.current = null;
+			}, debounceTime);
+			return;
+		}
+
+		// Handle throttle
+		if (throttleTime > 0) {
+			const now = Date.now();
+			const lastUpdate = lastUpdateRef.current[fieldName] ?? 0;
+			const timeSinceLastUpdate = now - lastUpdate;
+
+			clearTimeout(throttleTimerRef.current[fieldName]);
+
+			if (timeSinceLastUpdate >= throttleTime) {
+				lastUpdateRef.current[fieldName] = executeUpdate();
+				pendingThrottledUpdatesRef.current[fieldName] = false;
+			} else if (!pendingThrottledUpdatesRef.current[fieldName]) {
+				pendingThrottledUpdatesRef.current[fieldName] = true;
+				setTimeout(() => {
+					if (pendingThrottledUpdatesRef.current[fieldName]) {
+						lastUpdateRef.current[fieldName] = executeUpdate();
+						pendingThrottledUpdatesRef.current[fieldName] = false;
+					}
+				}, throttleTime - timeSinceLastUpdate);
+			}
+
+			// Final update timer
+			throttleTimerRef.current[fieldName] = setTimeout(() => {
+				lastUpdateRef.current[fieldName] = executeUpdate();
+				pendingThrottledUpdatesRef.current[fieldName] = false;
+				delete throttleTimerRef.current[fieldName];
+			}, throttleTime);
+			return;
+		}
+
+		// No debounce or throttle - immediate update
+		executeUpdate();
 	}, [options]);
 
 	/** Creates a new entity in the database with the current form values */
@@ -97,7 +195,6 @@ export function useIDBForm2<
 		await db.transact(baseTransaction);
 	}, [options]);
 
-	const tanstackOptions = options.tanstackOptions(handleIdbUpdate, handleIdbCreate);
 	const idbOptions = options.idbOptions;
 
 	// Get all options from the callback
@@ -110,18 +207,17 @@ export function useIDBForm2<
 	// Use the extracted function to create schema and get defaults
 	const { zodSchema, defaults: zodDefaults } = createEntityZodSchemaV3(idbOptions.schema.entities[entityName]);
 
-	// Merge default values from options with zod defaults
+	// Merge default values from options with zod/instant defaults
 	for (const [fieldName, fieldValue] of Object.entries(idbOptions.defaultValues || {})) {
 		zodDefaults[fieldName] = fieldValue;
 	}
 
-	// const form = useForm(tanstackOptions);
+	// Create tanstack form
+	const idbApi = { handleIdbUpdate, handleIdbCreate, zodSchema };
+	const tanstackOptions = options.tanstackOptions(idbApi);
 	const form = useForm({
 		...tanstackOptions,
 		defaultValues: zodDefaults as FormData,
-
-		// TODO: We need to pass this to tanstackOptions function instead for dev to define
-		validators: { onChange: zodSchema },
 	});
 
 	// --------------------------------------------------------------------------------
@@ -186,14 +282,24 @@ export function useIDBForm2<
 	}, [idbOptions]);
 
 	// --------------------------------------------------------------------------------
+	// Check if a field needs to be updated
+	const checkIDBNeedsUpdate = (fieldName: string) => {
+		const oldValue = queryValueRef.current![fieldName];
+		const newValue = form.getFieldValue(fieldName);
+		const needsUpdate = JSON.stringify(oldValue) !== JSON.stringify(newValue);
+		if (needsUpdate) form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, synced: false }));
+		return needsUpdate;
+	};
+
+	// --------------------------------------------------------------------------------
 	// Update a field in InstantDB
-	const updateIDB = (fieldName: string) => {
+	const getIDBUpdateTransactions = (fieldName: string) => {
 		const transactions: TransactionChunk<InstantSchemaDef<any, any, any>, string>[] = [];
 		if (idbOptions.type === 'create') return transactions;
 		const oldValue = queryValueRef.current![fieldName];
 		const newValue = form.getFieldValue(fieldName);
 
-		// Skip update if the value hasn't changed. TODO: Use form touched/dirty as well
+		// Skip update if the value hasn't changed.
 		if (JSON.stringify(oldValue) === JSON.stringify(newValue)) {
 			console.log(`Skipping server update for field: ${fieldName}`);
 			return transactions;
@@ -202,7 +308,7 @@ export function useIDBForm2<
 		// console.log(`Server Update: ${fieldName} from ${oldValue} to ${newValue}`);
 		console.log(`Server Update: ${fieldName} from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)}`);
 
-		form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, synced: false }));
+		// form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, synced: false }));
 		const id = form.getFieldValue('id') as string;
 
 		const link = links[fieldName];
@@ -264,23 +370,24 @@ export function useIDBForm2<
 	form.Field = WrappedField as any;
 
 	type NewForm = typeof form & {
-		newTestString: string
+		/** API for the IDB Form. */
+		idb: IDBFormApi
 	};
 	const newForm = form as NewForm;
-	newForm.newTestString = 'test';
+	newForm.idb = idbApi;
 
 	return newForm;
 }
 
-type ExtendedForm<TFormData> = ReturnType<typeof useForm<TFormData, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>> & {
-	newTestString: string
-};
+// type ExtendedForm<TFormData> = ReturnType<typeof useForm<TFormData, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>> & {
+// 	newTestString: string
+// };
 
-interface IDBFieldMeta<T = any> {
-	/** This is a custom function that is used to update the field value */
-	handleChange: (value: T) => void
-	/** Whether the field has been synced with the database. Only for debounced fields, which don't update immediately */
-	synced: boolean
-	/** Data for the relation picker */
-	data: T extends any[] ? T : T[]
-}
+// interface IDBFieldMeta<T = any> {
+// 	/** This is a custom function that is used to update the field value */
+// 	handleChange: (value: T) => void
+// 	/** Whether the field has been synced with the database. Only for debounced fields, which don't update immediately */
+// 	synced: boolean
+// 	/** Data for the relation picker */
+// 	data: T extends any[] ? T : T[]
+// }
