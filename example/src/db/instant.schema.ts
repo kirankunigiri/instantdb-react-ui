@@ -36,19 +36,19 @@ const _schema = i.schema({
 	entities: {
 		persons: i.entity({
 			name: addZod(i.string().unique().indexed(),
-				() => z.string().min(1, { message: 'Please enter a name' })),
+				z.string().min(1, { message: 'Please enter a name' })),
 			email: addZod(i.string().unique().indexed(),
-				() => z.string().email({ message: 'Please enter a valid email address' }).min(5).max(100)),
+				z.string().email({ message: 'Please enter a valid email address' }).min(5).max(100)),
 		}),
 		items: i.entity({
 			name: addZod(i.string().unique().indexed(),
-				() => z.string().min(1, { message: 'Please enter a name' })),
+				z.string().min(1, { message: 'Please enter a name' })),
 			shareable: addZod(i.boolean(),
-				() => z.boolean().default(true)),
+				z.boolean().default(true)),
 			category: addZod(i.string(),
-				() => z.nativeEnum(ITEM_CATEGORY)),
+				z.nativeEnum(ITEM_CATEGORY)),
 			date: addZod(i.date().indexed(),
-				() => z.number().min(new Date('2020-01-01').getTime()).default(Date.now)),
+				z.number().min(new Date('2020-01-01').getTime()).default(Date.now)),
 		}),
 		rooms: i.entity({
 			name: i.string().indexed(),

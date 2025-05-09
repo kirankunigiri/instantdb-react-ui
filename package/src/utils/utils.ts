@@ -6,14 +6,23 @@ import { z, ZodError, ZodTypeAny } from 'zod';
 
 import { IDBFormState } from '../form/form';
 
+interface IdbZodSchema {
+	/** The zod schema for the attribute */
+	zodSchema: ZodTypeAny
+}
+interface IdbZodSchemaOptional {
+	zodSchema?: ZodTypeAny
+}
+
 /** Add a zod transform to an attribute definition in an instant schema */
+export type IdbZodAttr = DataAttrDef<any, any> & IdbZodSchema;
 export const addZod = <T extends DataAttrDef<any, any>>(
 	input: T,
-	zodTransform: () => ZodTypeAny,
-): T & { _zodTransform: () => ZodTypeAny } => {
+	zodSchema: ZodTypeAny,
+): IdbZodAttr => {
 	return {
 		...input,
-		_zodTransform: zodTransform,
+		zodSchema: zodSchema,
 	};
 };
 
@@ -22,15 +31,17 @@ export const generateZodEntitySchema = (message = 'This relation is required') =
 	id: z.string(),
 }, { message }).passthrough();
 
-export const makeLinkRequired = <T extends LinkAttrDef<any, any>>(
+export type IdbZodLink = LinkAttrDef<any, any> & IdbZodSchemaOptional;
+/** Make an IDB link required with zod in the schema */
+export const makeLinkRequired = <T extends IdbZodLink>(
 	input: T,
 	message?: string,
 ) => {
 	const zodMessage = message || 'This relation is required';
 	if (input.cardinality === 'one') {
-		input['_zodTransform'] = () => generateZodEntitySchema(zodMessage);
+		input.zodSchema = generateZodEntitySchema(zodMessage);
 	} else {
-		input['_zodTransform'] = () => z.array(generateZodEntitySchema(zodMessage)).min(1, { message: zodMessage });
+		input.zodSchema = z.array(generateZodEntitySchema(zodMessage)).min(1, { message: zodMessage });
 	}
 };
 

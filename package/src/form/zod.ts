@@ -2,7 +2,7 @@
 import { AttrsDefs, EntitiesDef, EntityDef, InstantSchemaDef, LinkAttrDef, LinksDef, ValueTypes } from '@instantdb/react';
 import { z } from 'zod';
 
-import { generateZodEntitySchema } from '../utils/utils';
+import { generateZodEntitySchema, IdbZodAttr, IdbZodLink } from '../utils/utils';
 
 export interface IContainEntitiesAndLinks<
 	Entities extends EntitiesDef,
@@ -61,8 +61,9 @@ export function createIdbEntityZodSchema<
 	schema: TSchema,
 	entityName: TEntity,
 ): {
-		zodSchema: z.ZodObject<any>
-		defaults: Record<string, any>
+		// TODO: These types are not exactly correct. Leaving it for later as it's not a priority
+		zodSchema: z.ZodObject<Record<keyof TSchema['entities'][TEntity]['attrs'], z.ZodType>>
+		defaults: Record<keyof TSchema['entities'][TEntity]['attrs'], any>
 	} {
 	const entity = schema.entities[entityName as string] as BasicEntity;
 	const entityAttrs = entity.attrs;
@@ -71,27 +72,24 @@ export function createIdbEntityZodSchema<
 
 	// Handle attributes
 	Object.entries(entityAttrs).forEach(([key, attr]) => {
-		const transform = (attr as any)._zodTransform;
+		const attrSchema = (attr as IdbZodAttr).zodSchema;
 		let fieldSchema: z.ZodType;
 
-		if (transform && typeof transform === 'function') {
+		if (attrSchema) {
 			try {
-				fieldSchema = transform();
+				fieldSchema = attrSchema;
 				// Extract default if it exists from Zod schema
 				if ('_def' in fieldSchema && 'defaultValue' in fieldSchema._def) {
 					const defaultValue = fieldSchema._def.defaultValue;
 					defaults[key] = typeof defaultValue === 'function' ? defaultValue() : defaultValue;
 				} else {
-					// If no Zod default, use valueType default
 					defaults[key] = getDefaultValueByType(attr.valueType);
 				}
 			} catch (e) {
-				// fallback to default schema
 				fieldSchema = getDefaultSchema(attr.valueType);
 				defaults[key] = getDefaultValueByType(attr.valueType);
 			}
 		} else {
-			// fallback to default schema
 			fieldSchema = getDefaultSchema(attr.valueType);
 			defaults[key] = getDefaultValueByType(attr.valueType);
 		}
@@ -101,17 +99,18 @@ export function createIdbEntityZodSchema<
 
 	// Handle links
 	Object.entries(entity.links).forEach(([key, link]) => {
+		const linkSchema = (link as IdbZodLink).zodSchema;
 		if (link.cardinality === 'one') {
 			defaults[key] = null;
-			if (link._zodTransform) {
-				schemaObj[key] = link._zodTransform();
+			if (linkSchema) {
+				schemaObj[key] = linkSchema;
 			} else {
 				schemaObj[key] = generateZodEntitySchema().nullable();
 			}
 		} else {
 			defaults[key] = [];
-			if (link._zodTransform) {
-				schemaObj[key] = link._zodTransform();
+			if (linkSchema) {
+				schemaObj[key] = linkSchema;
 			} else {
 				schemaObj[key] = z.array(generateZodEntitySchema().nullable());
 			}
@@ -119,8 +118,8 @@ export function createIdbEntityZodSchema<
 	});
 
 	return {
-		zodSchema: z.object(schemaObj),
-		defaults,
+		zodSchema: z.object(schemaObj) as any,
+		defaults: defaults as any,
 	};
 }
 
@@ -134,13 +133,12 @@ export function createEntityZodSchemaV3(entity: BasicEntity): {
 	const defaults: Record<string, any> = {};
 
 	Object.entries(entityAttrs).forEach(([key, attr]) => {
-		// Safely check and execute _zodTransform
-		const transform = (attr as any)._zodTransform;
+		const attrSchema = (attr as IdbZodAttr).zodSchema;
 		let fieldSchema: z.ZodType;
 
-		if (transform && typeof transform === 'function') {
+		if (attrSchema) {
 			try {
-				fieldSchema = transform();
+				fieldSchema = attrSchema;
 				// Extract default if it exists from Zod schema
 				if ('_def' in fieldSchema && 'defaultValue' in fieldSchema._def) {
 					const defaultValue = fieldSchema._def.defaultValue;
@@ -165,17 +163,18 @@ export function createEntityZodSchemaV3(entity: BasicEntity): {
 
 	// Add zod schema for links
 	Object.entries(entity.links).forEach(([key, link]) => {
+		const linkSchema = (link as IdbZodLink).zodSchema;
 		if (link.cardinality === 'one') {
 			defaults[key] = null;
-			if (link._zodTransform) {
-				schemaObj[key] = link._zodTransform();
+			if (linkSchema) {
+				schemaObj[key] = linkSchema;
 			} else {
 				schemaObj[key] = generateZodEntitySchema().nullable();
 			}
 		} else {
 			defaults[key] = [];
-			if (link._zodTransform) {
-				schemaObj[key] = link._zodTransform();
+			if (linkSchema) {
+				schemaObj[key] = linkSchema;
 			} else {
 				schemaObj[key] = z.array(generateZodEntitySchema().nullable());
 			}

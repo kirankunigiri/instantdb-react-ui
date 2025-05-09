@@ -8,6 +8,7 @@ import schema, { ITEM_CATEGORY } from '~client/db/instant.schema';
 import { ReusableFormComponentProps2 } from '~client/lib/components/components';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
 import { useRouteId } from '~client/lib/utils';
+import { createIdbEntityZodSchema } from '~instantdb-react-ui/form/zod';
 import { ExtractFormData, getErrorMessageForField } from '~instantdb-react-ui/index';
 import { useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
 
@@ -22,6 +23,8 @@ const userSchema = z.object({
 function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 	const id = useRouteId();
 	console.log('rendering form');
+
+	const { zodSchema, defaults } = createIdbEntityZodSchema(schema, 'items');
 
 	const form = useForm({
 		defaultValues: {
