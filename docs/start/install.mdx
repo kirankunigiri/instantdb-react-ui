@@ -1,0 +1,59 @@
+---
+title: "Install"
+description: "Add instantdb-react-ui to your project"
+icon: "download"
+iconType: "solid"
+---
+
+#### Dependencies
+These dependencies are required for the package to work. Install them in the next step.
+
+```json
+"peerDependencies": {
+	"@instantdb/react": "^0.17.0",
+	"react": ">=19.0.0",
+	"@tanstack/react-form": "^0.42.0",
+	"@tanstack/zod-form-adapter": "^0.42.0",
+	"zod": "^3.0.0"
+}
+```
+
+#### Install with your favorite package manager
+
+<CodeGroup>
+
+```bash npm
+npm install instantdb-react-ui @instantdb/react @tanstack/react-form @tanstack/zod-form-adapter zod
+```
+
+```bash bun
+bun add instantdb-react-ui @instantdb/react @tanstack/react-form @tanstack/zod-form-adapter zod
+```
+
+```bash pnpm
+pnpm add instantdb-react-ui @instantdb/react @tanstack/react-form @tanstack/zod-form-adapter zod
+```
+
+```bash yarn
+yarn add instantdb-react-ui @instantdb/react @tanstack/react-form @tanstack/zod-form-adapter zod
+```
+
+</CodeGroup>
+
+### Wrap your app with `IDBReactUIProvider`
+The provider gives the library access to the database and schema. Pass in the `db` and `schema` objects to the provider.
+
+```tsx IDBReactUIProvider {8,10}
+import { IDBReactUIProvider } from "instantdb-react-ui";
+import schema from './instant.schema';
+
+export const db = init({ ... });
+
+createRoot(document.getElementById('root')!).render(
+	<StrictMode>
+		<IDBReactUIProvider db={db} schema={schema}>
+			<App />
+		</IDBReactUIProvider>
+	</StrictMode>,
+);
+```

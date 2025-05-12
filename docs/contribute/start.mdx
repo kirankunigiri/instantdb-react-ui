@@ -1,0 +1,32 @@
+---
+title: "Project Overview"
+description: "Learn how instantdb-react-ui works under the hood"
+icon: "rocket"
+---
+
+### Forms
+`package/form/form.tsx`
+1. Use `createEntityZodSchema` to create a zod schema from the entity and create intiial empty values
+2. Use `use-form` hook to create a form with the zod schema resolver and initial values
+3. Get relation field picker data for relation fields
+4. Run `processChildren` to recursively replace `IDBField` components. These components are cloned, and the form values are passed in so IDBForm has control over their state.
+5. For update fields, form state is tracked. We check which fields are dirty (have been edited) and valid, and only run updates for those fields.
+
+
+#### Mantine Form library
+Form state is managed using the `@mantine/form` library with the `use-form` hook.
+
+<Card
+  color="#339AF0"
+  horizontal
+  title="Mantine Form Docs"
+  icon="book-open-cover"
+  href="https://mantine.dev/form/use-form/"
+>
+  Read the reference for the use-form hook
+</Card>
+
+### Lists
+`package/list/list.tsx`
+
+Under construction.

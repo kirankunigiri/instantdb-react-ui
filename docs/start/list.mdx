@@ -1,0 +1,168 @@
+---
+title: "Lists"
+description: "Render lists of data with queries built-in"
+icon: "list"
+---
+
+### Example
+Render a list and automatically get access to type-safe data. Pick between normal, infinite, and paginated modes.
+
+<CodeGroup>
+
+```tsx normal
+import { IDBList } from "instantdb-react-ui";
+
+type Item = InstaQLEntity<AppSchema, 'items'>;
+
+return (
+	<IDBList<Item>
+		entity={entityNames.items}
+		render={item => (
+			<div>
+				<p>{item.name}</p>
+				<p>{item.category}</p>
+			</div>
+		)}
+	/>
+)
+
+```
+
+```tsx infinite
+import { IDBList } from "instantdb-react-ui";
+
+type Item = InstaQLEntity<AppSchema, 'items'>;
+
+return (
+	<IDBList<Item>
+		mode="infinite"
+		entity={entityNames.items}
+		render={item => (
+			<div>
+				<p>{item.name}</p>
+				<p>{item.category}</p>
+			</div>
+		)}
+	/>
+)
+
+```
+
+```tsx paginated
+import { IDBList } from "instantdb-react-ui";
+
+type Item = InstaQLEntity<AppSchema, 'items'>;
+
+return (
+	<IDBList<Item>
+		mode="paginated"
+		entity={entityNames.items}
+		render={item => (
+			<div>
+				<p>{item.name}</p>
+				<p>{item.category}</p>
+			</div>
+		)}
+	/>
+)
+
+```
+
+</CodeGroup>
+
+### Props
+
+<ParamField path="mode" type="'normal' | 'infinite' | 'paginated'" default="normal">
+  The list rendering mode. 'normal' loads all data at once, 'infinite' loads more as you scroll, and 'paginated' uses page-based navigation.
+</ParamField>
+
+<ParamField path="entity" type="string" required>
+  The name of the entity/model to query from the database.
+</ParamField>
+
+<ParamField path="render" type="(item: T, id: string) => ReactNode" required>
+  Function to render each item in the list. Receives the item data and its ID.
+</ParamField>
+
+<ParamField path="query" type="object">
+  The query object to filter and sort the data. If not provided, fetches all records of the entity.
+</ParamField>
+
+<ParamField path="skeleton" type="ReactNode">
+  Component to show while data is loading.
+</ParamField>
+
+<ParamField path="noResults" type="ReactNode">
+  Component to show when there are no results or an error occurs.
+</ParamField>
+
+<ParamField path="pageSize" type="number" default={10}>
+  Number of items per page (only for 'infinite' and 'paginated' modes).
+</ParamField>
+
+<ParamField path="pagination" type="PaginationState">
+  Required when mode is 'paginated'. Pagination state object from useIDBPagination hook
+</ParamField>
+
+### Wrapper Component
+
+If you use the list component in your app often with different entities/queries, it's a good idea to create a reusable wrapper component. Below is an example from the demo website that uses Mantine and Tanstack Router.
+- Extend IDBList props to allow full customization
+- Styles are automatically applied to all lists
+- Take in a route param to allow clicking on an item to navigate to a detail view
+
+```tsx 
+import { ScrollArea } from '@mantine/core';
+import { Skeleton } from '@mantine/core';
+import { Link } from '@tanstack/react-router';
+
+import type { RouteFullPaths } from '~client/lib/sidebar';
+import type { SearchParams } from '~client/lib/utils';
+import { IDBList, type IDBListProps } from '~instantdb-react-ui/list/list';
+
+type ListWrapperProps<T> = IDBListProps<T> & {
+	route: RouteFullPaths
+	itemId?: number | string
+	search?: SearchParams
+};
+
+function List<T extends Record<string, any>>({ itemId, search, route, ...idbListProps }: ListWrapperProps<T>) {
+	return (
+		<ScrollArea className="list-scrollarea">
+			<IDBList<T>
+				{...idbListProps}
+
+				// Defaults
+				skeleton={idbListProps.skeleton ?? <ListSkeleton />}
+				noResults={idbListProps.noResults ?? <p className="text-gray-500">No results found</p>}
+
+				// Render
+				render={(item: T, id: string | number) => (
+					<Link
+						key={id}
+						to={route}
+						params={{ id: id.toString() }}
+						className="list-item"
+						data-selected={id === itemId}
+						search={search}
+					>
+						{idbListProps.render(item, id)}
+					</Link>
+				)}
+			/>
+		</ScrollArea>
+	);
+}
+
+function ListSkeleton() {
+	return (
+		<>
+			{Array.from({ length: 10 }).map((_, i: number) => (
+				<Skeleton key={i} height={42} className="list-item" />
+			))}
+		</>
+	);
+}
+
+export default List;
+```

@@ -1,0 +1,51 @@
+---
+title: "Notes"
+description: "Some notes on how this project was made"
+icon: "notes"
+---
+
+### The Beginning
+I've always found it interesting that database libraries and SDK's often don't come with easy to use headless components that perform data fetching and updates for you. There has always been a lot of manual and repetitive boilerplate code that you have to write for every single simple UI component that needs to read or write data.
+
+After working on several side projects, I noticed that every time I had to write a UI component, I was rewriting a lot of simple logic (especially `onChange` handlers) and wondered why there weren't libraries that did this for you. **Form libraries and database libraries existed, but there wasn't any library that connected both of them for you.**
+
+That's where the idea began, and I decided to write my own library. I initially worked on a project called `zenstack-ui` that had similar functionality for zenstack, prisma, and react. As a first draft however, it was missing a lot of functionality and customization. Eventually I ended up finding InstantDB and decided that this was the database I would use for all my future projects. Even though the react query sdk for InstantDB was great, it still didn't provide the level of integration with the UI that I desired, so I decided to port over `zenstack-ui` for InstantDB.
+
+### Creating the library - the older versions
+
+I actually ended up writing this library from scratch 4 different times! Each time, I realized that there was a completely better way to architect the connection between forms and databases and decided to rewrite it. With each rewrite, I ended up finding an even better way to do it, but it required changing the entire architecture! Even the current version may not be the best, but it finally reached a level where I started using it in my own projects, and was flexible enough that I could encourage anyone else to use it in their apps as well.
+
+In the first version of this project, I essentially developed a custom form library myself, and it wasn't even fully typesafe! It felt hacky to work with, and it never felt like it was a good way to develop a form-database library.
+
+Another interesting point is that initially, the earlier versions of this library required much less boilerplate code than the current version. My initial thoughts was that I wanted the resulting form code to be as concise as possible, so I tried to abstract whatever I could. Here's an example of what it previously looked like:
+
+```tsx
+<IDBForm id={id} entity={entityNames.persons} type={type} {...props}>
+	<IDBField fieldName={personFields.name}>
+		<TextInput label="Name" />
+	</IDBField>
+	<IDBField fieldName={personFields.email}>
+		<TextInput label="Email" />
+	</IDBField>
+	<IDBRelationField<Room> fieldName="room" setRelationPickerLabel={item => item.name}>
+		<SearchableSelect label="Room" data={[]} />
+	</IDBRelationField>
+	{children}
+</IDBForm>
+```
+
+This looks great because of how simple and short it is, but it actually leads to a lot of problems down the line. This original version automatically modified the children of `IDBField` and injected the field state props (like value, onChange, touched, zod errors, etc.) into the component. For example, while the code only shows a TextInput with a label, the value prop and onChange function (to run database updates) is automatically injected into it by IDBField.
+
+So why did I end up scrapping it? Well, the more you abstract, the less customizable it is. While this was great for simple forms, more complicated forms were almost impossible to create due to the lack of custom options. Also, you don't get complete typesafety. So even though the current version of this library requires more boilerplate code, it allows enough customization that you can create pretty much any form you can think of.
+
+### Moving to Tanstack Form
+
+Eventually I realized tanstack form was the key to achieving great type-safety, and I decided to create a thin wrapper around it that automatically connected to InstantDB for you. I was really excited by how you could create a form that understood your InstantDB schema and could do data fetching and mutations for you!
+
+By using Tanstack Form for the base, developers keep complete customization and get a lot of cool form features from the original library.
+
+### The future
+
+There's still a lot of improvements that can be made to this library! Here's some things I'm thinking about:
+- Integrating Tanstack Form's form composition API to this library - https://tanstack.com/form/latest/docs/framework/react/guides/form-composition. This library was created before this existed (before the 1.0 release of tanstack-form), so this might require re-architecting the library again
+- Improving the debounce/throttle logic for form fields

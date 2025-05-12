@@ -1,0 +1,41 @@
+---
+title: "Zod"
+description: "Add zod validation to your instant schema."
+icon: "check-double" # circle-check
+iconType: "duotone"
+---
+
+### Example
+Add zod validation and defaults to your instant schema by wrapping the field with the `addZod` function. This example shows a few different zod examples.
+
+```tsx
+import { addZod } from 'instantdb-react-ui';
+
+const _schema = i.schema({
+	entities: {
+		persons: i.entity({
+			name: addZod(i.string().unique().indexed(),
+				() => z.string().min(3).max(25)),
+			email: addZod(i.string().unique().indexed(),
+				() => z.string().email().min(5).max(100)),
+			date: addZod(i.date().indexed(),
+				() => z.number().min(new Date('2020-01-01').getTime()).default(Date.now)),
+			category: addZod(i.string(),
+				() => z.nativeEnum(USER_CATEGORY), // use native typescript enum),
+			admin: addZod(i.boolean(),
+				() => z.boolean().default(false)),
+		}),
+	},
+});
+```
+
+<Note>
+InstantDB uses `number | string` for dates, which is why we use z.number() for validation and a number value for the default.
+</Note>
+
+### Defaults
+Using zod is optional! Without it, the field will automatically use a default zod validator depending on the instantdb type.
+
+### Showing errors
+Error message values are passed to the UI components as a prop.
+TODO: Add example for customizing error messages.

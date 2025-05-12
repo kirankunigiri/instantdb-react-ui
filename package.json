@@ -7,6 +7,7 @@
 	],
 	"scripts": {
 		"dev": "cd example && bun dev",
+		"docs": "cd docs && mint dev",
 		"deploy": "cd example && bun deploy",
 		"db:push": "bunx instant-cli@latest push schema",
 		"sync-env": "doppler -p instantdb-react-ui -c dev secrets download --no-file --format env > .env",

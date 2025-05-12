@@ -1,0 +1,105 @@
+---
+title: "Forms"
+description: "Render forms with validation and submission"
+icon: "pen-to-square"
+iconType: "solid"
+---
+
+### Example
+
+```tsx
+import { useIDBForm } from "instantdb-react-ui";
+
+function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
+	const itemForm = useIDBForm({
+		type,
+		schema,
+		entity: 'items',
+		query: { items: { room: {}, owner: { room: {} }, $: { where: { id } } } },
+		debounceFields: { name: 500 },
+	});
+	
+	return (
+		<div className="flex flex-col gap-1">
+			<p className="text-lg font-bold">Item Form</p>
+			<itemForm.Field
+				name="name"
+				children={field => (
+					<TextInput
+						className={`${type === 'update' && !field.idb.synced ? 'unsynced' : ''}`}
+						error={field.state.meta.errors.join(', ')}
+						label={`Name ${type === 'update' && field.idb.synced ? '(Synced)' : '(Unsynced)'}`}
+						value={field.state.value}
+						onChange={e => field.idb.handleChange(e.target.value)}
+					/>
+				)}
+			/>
+			<itemForm.Field
+				name="shareable"
+				children={field => (
+					<Checkbox
+						label="Shareable"
+						checked={field.state.value}
+						onChange={e => field.idb.handleChange(e.target.checked)}
+					/>
+				)}
+			/>
+			<itemForm.Field
+				name="category"
+				children={field => (
+					<SearchableSelect
+						label="Category"
+						value={field.state.value}
+						onChange={value => field.idb.handleChange(value as ITEM_CATEGORY)}
+						data={Object.values(ITEM_CATEGORY).map(category => ({ label: category, value: category }))}
+					/>
+				)}
+			/>
+			<itemForm.Field
+				name="room"
+				children={(field) => {
+					const linkData = field.idb.data || [];
+					return (
+						<SearchableSelect
+							label="Room"
+							// clearable
+							error={field.state.meta.errors.join(', ')}
+							value={field.state.value?.id}
+							data={linkData.map(item => ({ label: item!.name, value: item!.id }))}
+							onChange={(value) => {
+								itemForm.setFieldValue('owner', []);
+								field.idb.handleChange(linkData.find(item => item!.id === value)!);
+							}}
+						/>
+					);
+				}}
+			/>
+			<itemForm.Field
+				name="owner"
+				children={field => <OwnerField field={field} itemForm={itemForm} />}
+			/>
+			{type === 'create' && (
+				<itemForm.Subscribe
+					selector={state => [state.canSubmit, state.isSubmitting]}
+					children={([canSubmit, isSubmitting]) => (
+						<div className="flex justify-end">
+							<Button disabled={!canSubmit} onClick={() => itemForm.handleSubmit()} loading={isSubmitting}>
+								Submit
+							</Button>
+						</div>
+					)}
+				/>
+			)}
+		</div>
+	);
+}
+```
+
+### How it works
+IDBForm works by taking the root child of each IDBField, and passing in form related props. You should always pass only ONE child element to each IDBField (although you can nest any elements inside of it).
+
+### Props
+
+- `fieldName`: The name of the field to bind to.
+- `label`: The label of the field.
+- `description`: The description of the field.

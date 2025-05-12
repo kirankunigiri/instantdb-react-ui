@@ -1,0 +1,76 @@
+{
+	"$schema": "https://mintlify.com/docs.json",
+	"theme": "maple",
+	"name": "idb-react-ui",
+	"colors": {
+		"primary": "#0D9373",
+		"light": "#55D799",
+		"dark": "#0D9373"
+	},
+	"favicon": "/favicon.svg",
+	"navigation": {
+		"dropdowns": [
+			{
+				"dropdown": "Documentation",
+				"icon": "book",
+				"description": "Start learning",
+				"groups": [
+					{
+						"group": "Get Started",
+						"pages": [
+							"start/about",
+							"start/install",
+							"start/form",
+							"start/list",
+							"start/zod"
+						]
+					},
+					{
+						"group": "Contributing",
+						"pages": [
+							"contribute/start",
+							"contribute/notes"
+						]
+					}
+				]
+			}
+		],
+		"global": {
+			"anchors": [
+				{
+					"anchor": "Demo Site",
+					"href": "https://github.com/kirankunigiri/instantdb-react-ui",
+					"icon": "globe"
+				},
+				{
+					"anchor": "GitHub",
+					"href": "https://github.com/kirankunigiri/instantdb-react-ui",
+					"icon": "github"
+				}
+			]
+		}
+	},
+	"styling": {
+		"codeblocks": "system"
+	},
+	"logo": {
+		"light": "/logo/light.svg",
+		"dark": "/logo/dark.svg",
+		"href": "https://mintlify.com"
+	},
+	"api": {
+		"mdx": {
+			"auth": {
+				"method": "bearer"
+			}
+		}
+	},
+	"integrations": {
+		"ga4": {
+			"measurementId": "G-RCYWHL7EQ7"
+		},
+		"koala": {
+			"publicApiKey": "pk_76a6caa274e800f3ceff0b2bc6b9b9d82ab8"
+		}
+	}
+}

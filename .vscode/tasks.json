@@ -17,11 +17,11 @@
 			]
 		},
 
-		// Schema push task
+		// Run docs
 		{
-			"label": "schema:push",
+			"label": "docs",
 			"type": "shell",
-			"command": "cd example/src/db && bun dotenv -e ../../../.env -- bunx instant-cli@latest push schema",
+			"command": "cd docs && mint dev",
 			"presentation": {
 				"showReuseMessage": false,
 				"clear": true
