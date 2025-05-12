@@ -1,23 +1,49 @@
-import { InstaQLEntity } from '@instantdb/react';
-import { TextInput } from '@mantine/core';
+import { InstaQLEntity, InstaQLParams } from '@instantdb/react';
+import { Space, TextInput } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 
-import { AppSchema } from '~client/db/instant.schema';
+import schema, { AppSchema } from '~client/db/instant.schema';
 import List from '~client/lib/list/list';
 import { ListHeader } from '~client/lib/list/list-header';
 import { OutletWrapper } from '~client/lib/outlet-wrapper';
-import { entityNames } from '~client/main';
+import { getIdbSearchQuery, getIdbSearchQueryForField, validateSearch } from '~client/lib/utils';
+import { db, entityNames } from '~client/main';
 import ItemForm from '~client/routes/items/-form';
 import ItemForm2 from '~client/routes/items/-form2';
 
-type Item = InstaQLEntity<AppSchema, 'items'>;
-
 export const Route = createFileRoute('/items')({
 	component: ItemList,
+	validateSearch,
 });
 
 function ItemList() {
 	const params = Route.useParams() as { id?: string };
+	const search = Route.useSearch();
+	const navigate = Route.useNavigate();
+
+	const itemsQuery = {
+		items: {
+			$: {
+				// order: { name: 'desc' }, // TODO: Can't use order until instantdb bug is resolved
+				where: getIdbSearchQueryForField(search, 'name'),
+			},
+		},
+	} satisfies InstaQLParams<AppSchema>;
+
+	// const itemsWithoutOrder = db.useQuery({
+	// 	items: { },
+	// });
+
+	// const itemsWithOrder = db.useQuery({
+	// 	items: { $: { order: { name: 'asc' } } },
+	// });
+
+	// // 5 items
+	// console.log(`Normal Items Length: ${itemsWithoutOrder.data?.items.length}`);
+	// console.log(`Normal Items List: ${itemsWithoutOrder.data?.items.map(item => item.name)}`);
+	// // 3 items
+	// console.log(`Ordered Items Length: ${itemsWithOrder.data?.items.length}`);
+	// console.log(`Normal Items List: ${itemsWithOrder.data?.items.map(item => item.name)}`);
 
 	return (
 		<div className="page">
@@ -30,17 +56,19 @@ function ItemList() {
 				{/* Search Input */}
 				<TextInput
 					placeholder="Search"
-					// value={search.search || ''}
-					// onChange={e => navigate({ search: { search: e.target.value } })}
-					className="mb-4"
+					value={search.search || ''}
+					onChange={e => navigate({ search: { search: e.target.value } })}
 				/>
+				<Space h="sm" />
 
 				{/* List */}
-				<List<Item>
+				<List
+					schema={schema}
+					entity="items"
+					query={itemsQuery}
 					route="/items/$id"
-					entity={entityNames.items}
 					itemId={params.id}
-					// Render
+					search={search}
 					render={item => (
 						<>
 							<p className="text-sm">{item.name}</p>

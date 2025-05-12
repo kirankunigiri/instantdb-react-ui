@@ -28,7 +28,6 @@ export const db = init({
 
 /** List of entity names */
 export const entityNames = getEntityNames(schema);
-export type IDBQuery = Parameters<typeof db.useQuery>[0];
 
 // --------------------------------------------------------------------------------
 // TanStack Router Setup

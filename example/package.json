@@ -9,7 +9,7 @@
 		"deploy": "vite build && bun wrangler pages deploy"
 	},
 	"dependencies": {
-		"@instantdb/react": "^0.17.19",
+		"@instantdb/react": "^0.19.6",
 		"@mantine/core": "^7.17.0",
 		"@mantine/dates": "^7.17.0",
 		"@mantine/form": "^7.17.0",
@@ -18,7 +18,6 @@
 		"@tanstack/react-form": "^1.9.0",
 		"@tanstack/router-devtools": "^1.105.0",
 		"@tanstack/router-plugin": "^1.105.0",
-		"@tanstack/zod-form-adapter": "^0.42.0",
 		"@types/node": "^22.13.4",
 		"dayjs": "^1.11.13",
 		"instantdb-react-ui": "workspace:*",
@@ -32,11 +31,11 @@
 		"sonner": "^1.7.4",
 		"tailwind-merge": "^2.5.5",
 		"tailwindcss-animate": "^1.0.7",
-		"zod": "^3.24.2"
+		"zod": "^3.24.4"
 	},
 	"devDependencies": {
 		"@faker-js/faker": "^9.5.0",
-		"@instantdb/admin": "^0.17.19",
+		"@instantdb/admin": "^0.19.6",
 		"@types/react": "^19.0.10",
 		"@types/react-dom": "^19.0.4",
 		"@vitejs/plugin-react-swc": "^3.8.0",

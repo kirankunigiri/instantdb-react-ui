@@ -1,34 +1,31 @@
 import { InstaQLEntity, InstaQLParams } from '@instantdb/react';
-import { Pagination, ScrollArea, SegmentedControl, Space, TextInput } from '@mantine/core';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { Pagination, SegmentedControl, Space, TextInput } from '@mantine/core';
+import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
 import schema, { AppSchema } from '~client/db/instant.schema';
 import List from '~client/lib/list/list';
-import { ListHeader } from '~client/lib/list/list-header';
 import { OutletWrapper } from '~client/lib/outlet-wrapper';
-import { entityNames, type IDBQuery } from '~client/main';
-import PersonForm from '~client/routes/people/-form';
-import { IDBList, useIDBPagination } from '~instantdb-react-ui/index';
-
-type Person = InstaQLEntity<AppSchema, 'persons'>;
+import { getIdbSearchQuery, validateSearch } from '~client/lib/utils';
+import { useIDBPagination } from '~instantdb-react-ui/index';
 
 export const Route = createFileRoute('/people')({
 	component: PersonList,
+	validateSearch,
 });
 
 type ListMode = 'normal' | 'infinite' | 'paginated';
 
 function PersonList() {
 	const params = Route.useParams() as { id?: string };
+	const search = Route.useSearch();
+	const navigate = Route.useNavigate();
 
-	// List people in alphabetical order
+	// List people in alphabetical order with search filtering
 	const personQuery = {
 		persons: { $: {
 			order: { name: 'asc' },
-			// where: {
-			// 	name: { $like: 'Bernice' },
-			// },
+			where: { name: { $ilike: getIdbSearchQuery(search) } },
 		} },
 	} satisfies InstaQLParams<AppSchema>;
 
@@ -40,9 +37,8 @@ function PersonList() {
 		query: personQuery,
 	});
 
-	// TODO: add search
+	// Reset pagination when search changes
 	useEffect(() => {
-		// Reset pagination when search changes
 		pagination.goToPage(1);
 	}, []);
 
@@ -56,13 +52,13 @@ function PersonList() {
 			{/* List View */}
 			<div className="left-list">
 				{/* Header */}
-				<ListHeader title="People" entity={entityNames.persons} modalContent={PersonForm} />
+				{/* <ListHeader title="People" entity={entityNames.persons} modalContent={PersonForm} /> */}
 
 				{/* Search Input */}
 				<TextInput
 					placeholder="Search"
-					// value={search.search || ''}
-					// onChange={e => navigate({ search: { search: e.target.value } })}
+					value={search.search || ''}
+					onChange={e => navigate({ search: { search: e.target.value } })}
 				/>
 				<Space h="sm" />
 
@@ -86,6 +82,7 @@ function PersonList() {
 						query={personQuery}
 						route="/people/$id"
 						itemId={params.id}
+						search={search}
 						render={(person, id) => (
 							<p className="text-sm">{person.name}</p>
 						)}
@@ -102,7 +99,7 @@ function PersonList() {
 						query={personQuery}
 						route="/people/$id"
 						itemId={params.id}
-						// search={search}
+						search={search}
 						render={person => (
 							<p className="text-sm">{person.name}</p>
 						)}
@@ -119,7 +116,7 @@ function PersonList() {
 							pagination={pagination}
 							route="/people/$id"
 							itemId={params.id}
-							// search={search}
+							search={search}
 							render={person => (
 								<p className="text-sm">{person.name}</p>
 							)}
