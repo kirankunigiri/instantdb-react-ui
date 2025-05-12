@@ -8,6 +8,7 @@ import List from '~client/lib/list/list';
 import { ListHeader } from '~client/lib/list/list-header';
 import { OutletWrapper } from '~client/lib/outlet-wrapper';
 import { getIdbSearchQuery, validateSearch } from '~client/lib/utils';
+import { db } from '~client/main';
 import PersonForm from '~client/routes/people/-form';
 import { useIDBPagination } from '~instantdb-react-ui/index';
 
@@ -34,6 +35,7 @@ function PersonList() {
 	// Pagination
 	const pagination = useIDBPagination({
 		schema: schema,
+		db: db,
 		model: 'persons',
 		pageSize: 10,
 		query: personQuery,
@@ -80,6 +82,7 @@ function PersonList() {
 				{listMode === 'normal' && (
 					<List
 						schema={schema}
+						db={db}
 						mode="normal"
 						entity="persons"
 						query={personQuery}
@@ -96,6 +99,7 @@ function PersonList() {
 				{listMode === 'infinite' && (
 					<List
 						schema={schema}
+						db={db}
 						entity="persons"
 						mode="infinite"
 						pageSize={10}
@@ -114,6 +118,7 @@ function PersonList() {
 					<>
 						<List
 							schema={schema}
+							db={db}
 							entity="persons"
 							mode="paginated"
 							pagination={pagination}

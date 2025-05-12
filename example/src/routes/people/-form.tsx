@@ -7,6 +7,7 @@ import { ReusableFormComponentProps } from '~client/lib/components/components';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
 import SubmitButton from '~client/lib/components/submit';
 import { useRouteId } from '~client/lib/utils';
+import { db } from '~client/main';
 import { useIDBForm2 } from '~instantdb-react-ui/form/use-idb-form';
 import { getEntityFields, getErrorMessageForField } from '~instantdb-react-ui/index';
 
@@ -22,6 +23,7 @@ function PersonForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 		idbOptions: {
 			type: type,
 			schema: schema,
+			db: db,
 			entity: 'persons',
 			query: getPersonQuery(id),
 			serverDebounceFields: { name: 500, email: 500 },

@@ -1,5 +1,5 @@
 import { CodeHighlight } from '@mantine/code-highlight';
-import { Divider, ScrollArea, TextInput } from '@mantine/core';
+import { Divider, TextInput } from '@mantine/core';
 import { useForm } from '@tanstack/react-form';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect } from 'react';
@@ -15,32 +15,49 @@ export const Route = createFileRoute('/compare')({
 function RouteComponent() {
 	return (
 		<div className="flex size-full gap-4 p-4">
-			<ScrollArea className="flex-1 rounded-md border border-bd-light p-4">
-				<p className="text-lg font-bold">instantdb-react-ui Form</p>
-				<p className="text-sm text-gray-500">A form that uses instantdb-react-ui to render a single field on the Items table.</p>
-				<InstantdbReactUiForm />
-				<Divider my="md" />
-				<p className="my-2 text-sm text-gray-500">Below is the source code. This example uses a single field for simplicity, but as you add more fields, this library will become much more useful and keep your form code easier to maintain. Note how you never have to write manual db mutations or updating the form state when the query data changes.</p>
-				<CodeHighlight code={instantdbReactUiFormCode} language="tsx" />
-			</ScrollArea>
+			<div className="w-1/2 shrink-0 rounded-md border border-bd-light p-4">
+				<div className="flex h-full flex-col">
+					<div>
+						<p className="text-lg font-bold">instantdb-react-ui Form</p>
+						<p className="text-sm text-gray-500">A form that uses instantdb-react-ui to render a single field on the Items table.</p>
+						<InstantDBReactUIForm />
+						<Divider my="md" />
+						<p className="my-2 text-sm text-gray-500">Below is the source code. This example uses a single field for simplicity, but as you add more fields, this library will become much more useful and keep your form code easier to maintain. Note how you never have to write manual db mutations or update the form state when the query data changes.</p>
+					</div>
+					<div className="flex-1 overflow-hidden">
+						<div className="h-full overflow-auto">
+							<CodeHighlight code={instantdbReactUiFormCode} language="tsx" className="w-full" />
+						</div>
+					</div>
+				</div>
+			</div>
 
-			<ScrollArea className="flex-1 rounded-md border border-bd-light p-4">
-				<p className="text-lg font-bold">Manual Form</p>
-				<p className="text-sm text-gray-500">A form that uses a manual query with Tanstack Form to render a single field on the Items table.</p>
-				<ManualForm />
-				<Divider my="md" />
-				<p className="my-2 text-sm text-gray-500">Below is the source code. Note how you manually have to write form state logic and db mutations. Although it seems simple now, you would have to write these handlers for every single field in the form. This example is also missing the ability to reuse the same code for the create form, automatic zod schema validation, debouncing, and much more which you would have to implement manually.</p>
-				<CodeHighlight code={manualFormCode} language="tsx" />
-			</ScrollArea>
+			<div className="w-1/2 shrink-0 rounded-md border border-bd-light p-4">
+				<div className="flex h-full flex-col">
+					<div>
+						<p className="text-lg font-bold">Manual Form</p>
+						<p className="text-sm text-gray-500">A form that uses a manual query with Tanstack Form to render a single field on the Items table.</p>
+						<ManualForm />
+						<Divider my="md" />
+						<p className="my-2 text-sm text-gray-500">Below is the source code. Note how you manually have to write form state logic and db mutations. Although it seems simple now, you would have to write these handlers for every single field in the form. This example is also missing the ability to reuse the same code for the create form, automatic zod schema validation, debouncing, and much more which you would have to implement manually.</p>
+					</div>
+					<div className="flex-1 overflow-hidden">
+						<div className="h-full overflow-auto">
+							<CodeHighlight code={manualFormCode} language="tsx" className="w-full" />
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 	);
 }
 
-function InstantdbReactUiForm() {
+function InstantDBReactUIForm() {
 	const form = useIDBForm2({
 		idbOptions: {
 			type: 'update',
 			schema: schema,
+			db: db,
 			entity: 'items',
 			query: { items: { $: { limit: 1 } } },
 		},
@@ -74,15 +91,11 @@ function InstantdbReactUiForm() {
 
 function ManualForm() {
 	const query = db.useQuery({
-		items: {
-			$: { limit: 1 },
-		},
+		items: { $: { limit: 1 } },
 	});
 
 	const form = useForm({
-		defaultValues: {
-			name: '',
-		},
+		defaultValues: { name: '' },
 	});
 
 	const { data, isLoading } = query;
@@ -117,7 +130,7 @@ function ManualForm() {
 }
 
 const instantdbReactUiFormCode = `
-function InstantdbReactUiForm() {
+function InstantDBReactUIForm() {
 	const form = useIDBForm2({
 		idbOptions: {
 			type: 'update',
@@ -157,15 +170,11 @@ function InstantdbReactUiForm() {
 const manualFormCode = `
 function ManualForm() {
 	const query = db.useQuery({
-		items: {
-			$: { limit: 1 },
-		},
+		items: { $: { limit: 1 } },
 	});
 
 	const form = useForm({
-		defaultValues: {
-			name: '',
-		},
+		defaultValues: { name: '' },
 	});
 
 	const { data, isLoading } = query;

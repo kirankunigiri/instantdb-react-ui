@@ -7,6 +7,7 @@ import List from '~client/lib/list/list';
 import { ListHeader } from '~client/lib/list/list-header';
 import { OutletWrapper } from '~client/lib/outlet-wrapper';
 import { getIdbSearchQueryForField, validateSearch } from '~client/lib/utils';
+import { db } from '~client/main';
 import ItemForm from '~client/routes/items/-form';
 
 export const Route = createFileRoute('/items')({
@@ -63,6 +64,7 @@ function ItemList() {
 				{/* List */}
 				<List
 					schema={schema}
+					db={db}
 					entity="items"
 					query={itemsQuery}
 					route="/items/$id"

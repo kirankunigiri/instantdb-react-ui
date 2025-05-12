@@ -1,14 +1,14 @@
-import { InstaQLEntity, InstaQLParams } from '@instantdb/react';
-import { Space, Textarea, TextInput } from '@mantine/core';
+import { InstaQLParams } from '@instantdb/react';
+import { Textarea, TextInput } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
 
 import schema, { AppSchema } from '~client/db/instant.schema';
 import { ReusableFormComponentProps } from '~client/lib/components/components';
-import { SearchableSelect } from '~client/lib/components/searchable-select';
 import SubmitButton from '~client/lib/components/submit';
 import { useRouteId } from '~client/lib/utils';
+import { db } from '~client/main';
 import { useIDBForm2 } from '~instantdb-react-ui/form/use-idb-form';
-import { getEntityFields, getErrorMessageForField } from '~instantdb-react-ui/index';
+import { getErrorMessageForField } from '~instantdb-react-ui/index';
 
 const getRoomQuery = (id: string) => ({ rooms: { $: { where: { id } } } } satisfies InstaQLParams<AppSchema>);
 
@@ -20,6 +20,7 @@ function RoomForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 		idbOptions: {
 			type: type,
 			schema: schema,
+			db: db,
 			entity: 'rooms',
 			query: getRoomQuery(id),
 			serverDebounceFields: { name: 500, description: 500 },
@@ -35,6 +36,7 @@ function RoomForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 			},
 			onSubmit: async () => {
 				const id = await handleIdbCreate(); // create entity
+				if (!id) throw new Error('Failed to create room');
 				navigate({ to: '/rooms/$id', params: { id }, search: { search: '' } }); // nav to new room
 				onValidSubmit?.(); // close modal
 			},

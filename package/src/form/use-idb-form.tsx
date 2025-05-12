@@ -1,33 +1,30 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { TransactionChunk } from '@instantdb/core';
-import { EntitiesDef, id, InstantSchemaDef, InstaQLParams, InstaQLResult, LinksDef } from '@instantdb/react';
-import { DeepValue, FieldApi, FormApi, FormOptions, formOptions, useForm } from '@tanstack/react-form';
+import { id, InstantReactWebDatabase, InstantSchemaDef, InstaQLParams, InstaQLResult, LinkAttrDef } from '@instantdb/react';
+import { DeepValue, FieldApi, FormOptions, useForm } from '@tanstack/react-form';
 import { useCallback, useEffect, useRef } from 'react';
 import { z } from 'zod';
 
 import { createEntityZodSchemaV3 } from '../form/zod';
-import { useNewReactContext } from '../utils/provider';
 
-// TODO: replace with instantdb types
-interface EntityLink {
-	entityName: string
-	cardinality: 'one' | 'many'
-}
-export type EntityLinks = Record<string, EntityLink>;
+export type EntityLinks = Record<string, LinkAttrDef<any, any>>;
 
 /** The type of form to be used. Either update or create */
 export type IDBFormType = 'update' | 'create';
 
 /** The schema of an InstantDB database */
-export interface IDBSchema<
-	Entities extends EntitiesDef,
-	Links extends LinksDef<Entities>,
-> {
-	entities: Entities
-	links: Links
-}
+// export interface IDBSchema<
+// 	Entities extends EntitiesDef,
+// 	Links extends LinksDef<Entities>,
+// > {
+// 	entities: Entities
+// 	links: Links
+// }
 
-export type IDBSchemaType = IDBSchema<EntitiesDef, any>;
+// Update to use InstantSchemaDef
+export type IDBSchemaType = InstantSchemaDef<any, any, any>;
+
+// These types remain the same but now reference InstantSchemaDef under the hood
 export type IDBEntityType<T extends IDBSchemaType> = keyof T['entities'];
 export type IDBQueryType<T extends IDBSchemaType> = InstaQLParams<T>;
 
@@ -40,7 +37,7 @@ export type ExtractIDBEntityType<
 
 /** A slightly more permissive version of ExtractIDBEntityType for use with custom components */
 export type ExtractFormDataType<
-	TSchema extends IDBSchema<EntitiesDef, any>,
+	TSchema extends IDBSchemaType,
 	TQuery extends Record<string, any>,
 	TEntity extends keyof InstaQLResult<TSchema, TQuery>,
 > = NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never;
@@ -69,7 +66,7 @@ export const isDifferent = (a: any, b: any) => {
 
 /** An InstantDB wrapper for Tanstack Form. Gain type-safety and automatic database syncing. */
 export function useIDBForm2<
-	TSchema extends IDBSchema<EntitiesDef, any>,
+	TSchema extends IDBSchemaType,
 	TEntity extends keyof TSchema['entities'],
 	TQuery extends InstaQLParams<TSchema>,
 	TLinkQueries extends Partial<Record<keyof TSchema['entities'][TEntity]['links'], InstaQLParams<TSchema>>>,
@@ -78,6 +75,7 @@ export function useIDBForm2<
 		idbOptions: Omit<FormOptions<ExtractIDBEntityType<TSchema, TEntity, TQuery>, any, any, any, any, any, any, any, any, any>, 'defaultValues'> & {
 			type: IDBFormType
 			schema: TSchema
+			db: InstantReactWebDatabase<TSchema>
 			entity: TEntity
 			query: TQuery
 			linkPickerQueries?: TLinkQueries
@@ -226,12 +224,11 @@ export function useIDBForm2<
 	}, [options]);
 
 	const idbOptions = options.idbOptions;
+	const db = idbOptions.db;
 
 	// Get all options from the callback
 	const entityName = idbOptions.entity as string;
 	const queryValueRef = useRef<any>(null);
-
-	const { db } = useNewReactContext();
 
 	// Extract link names from the query
 	const queryLinkNames = Object.keys(idbOptions.query[entityName] || {}).filter(key => key !== '$');
@@ -331,7 +328,7 @@ export function useIDBForm2<
 	// --------------------------------------------------------------------------------
 	// Update a field in InstantDB
 	const getIDBUpdateTransactions = (fieldName: string) => {
-		const transactions: TransactionChunk<InstantSchemaDef<any, any, any>, string>[] = [];
+		const transactions: TransactionChunk<IDBSchemaType, string>[] = [];
 		if (idbOptions.type === 'create') return transactions;
 		const oldValue = queryValueRef.current![fieldName];
 		const newValue = form.getFieldValue(fieldName);

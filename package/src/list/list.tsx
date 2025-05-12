@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { EntitiesDef, InstantSchemaDef, InstaQLParams, InstaQLResult, LinksDef } from '@instantdb/react';
+import { InstantReactWebDatabase } from '@instantdb/react';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 
 import { ExtractIDBEntityType, IDBEntityType, IDBQueryType, IDBSchemaType, InstantValue } from '../form/use-idb-form';
-import { useIDBReactUIProvider } from '../utils/provider';
 
 interface BaseListProps<
 	TSchema extends IDBSchemaType,
@@ -12,6 +11,7 @@ interface BaseListProps<
 	TQuery extends IDBQueryType<TSchema>,
 > {
 	schema: TSchema
+	db: InstantReactWebDatabase<TSchema>
 	entity: TEntity
 	query?: TQuery
 	render: (item: ExtractIDBEntityType<TSchema, TEntity, TQuery>, id: string) => ReactNode
@@ -57,11 +57,10 @@ const NormalList = <
 	TEntity extends IDBEntityType<TSchema>,
 	TQuery extends IDBQueryType<TSchema>,
 >(props: NormalListProps<TSchema, TEntity, TQuery>) => {
-	const { entity, render, skeleton, query, noResults } = props;
-	const { db } = useIDBReactUIProvider();
+	const { entity, render, skeleton, query, noResults, db } = props;
 
 	const constructedQuery = query || { [entity]: {} };
-	const { isLoading, error, data: rawData } = db.useQuery(constructedQuery); // TODO: Bug in Instant, isLoading doesn't change to false when the query changes
+	const { isLoading, error, data: rawData } = db.useQuery(constructedQuery as TQuery); // TODO: Bug in Instant, isLoading doesn't change to false when the query changes
 
 	// Extract the array from the entity property
 	const data = rawData ? rawData[entity] as any[] : null;
@@ -87,8 +86,7 @@ const InfiniteList = <
 	TEntity extends IDBEntityType<TSchema>,
 	TQuery extends IDBQueryType<TSchema>,
 >(props: InfiniteListProps<TSchema, TEntity, TQuery>) => {
-	const { entity, render, skeleton, query, noResults, pageSize = 10 } = props;
-	const { db } = useIDBReactUIProvider();
+	const { entity, render, skeleton, query, noResults, pageSize = 10, db } = props;
 	const [limit, setLimit] = useState(pageSize);
 	const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -102,7 +100,7 @@ const InfiniteList = <
 		},
 	};
 
-	const { isLoading, error, data: rawData } = db.useQuery(constructedQuery);
+	const { isLoading, error, data: rawData } = db.useQuery(constructedQuery as TQuery);
 	const items = rawData ? rawData[entity] as any[] : [];
 	const hasMore = items.length === limit;
 
@@ -167,6 +165,7 @@ interface PaginationOptions<
 	model: TEntity
 	pageSize?: number
 	schema: TSchema
+	db: InstantReactWebDatabase<TSchema>
 }
 
 interface PaginationState<
@@ -187,13 +186,13 @@ export const useIDBPagination = <
 	TEntity extends IDBEntityType<TSchema>,
 	TQuery extends IDBQueryType<TSchema>,
 >(props: PaginationOptions<TSchema, TEntity, TQuery>): PaginationState<TSchema, TEntity, TQuery> => {
-	const { db } = useIDBReactUIProvider();
+	const db = props.db;
 	const pageSize = props.pageSize || 10;
 	const [page, setPage] = useState(1);
 
 	// Get all items to count total
 	const allItemsQuery = props.query || { [props.model]: {} };
-	const { data: allData } = db.useQuery(allItemsQuery);
+	const { data: allData } = db.useQuery(allItemsQuery as TQuery);
 	const totalItems = allData?.[props.model]?.length || 0;
 	const totalPages = Math.ceil(totalItems / pageSize);
 

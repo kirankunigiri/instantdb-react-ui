@@ -10,6 +10,7 @@ import { ReusableFormComponentProps } from '~client/lib/components/components';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
 import SubmitButton from '~client/lib/components/submit';
 import { useRouteId } from '~client/lib/utils';
+import { db } from '~client/main';
 import { ExtractFormDataType, useIDBForm2 } from '~instantdb-react-ui/form/use-idb-form';
 import { getErrorMessageForField, IDBExtractFieldType, IDBExtractFormType } from '~instantdb-react-ui/index';
 
@@ -31,6 +32,7 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 		idbOptions: {
 			type: type,
 			schema: schema,
+			db: db,
 			entity: 'items',
 			query: getItemQuery(id),
 			// Optional. Prioritizes custom overrides (here) -> zod defaults -> instant defaults
@@ -66,6 +68,7 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 					console.log('submitting: ', value);
 
 					const id = await handleIdbCreate(); // create entity
+					if (!id) throw new Error('Failed to create entity');
 					navigate({ to: '/items/$id', params: { id }, search: { search: '' } }); // nav to new person
 					onValidSubmit?.(); // close modal
 				} catch (error: unknown) {
