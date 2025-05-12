@@ -1,5 +1,5 @@
 import { InstaQLEntity, InstaQLParams } from '@instantdb/react';
-import { Space, TextInput } from '@mantine/core';
+import { Space, Textarea, TextInput } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
 
 import schema, { AppSchema } from '~client/db/instant.schema';
@@ -22,7 +22,7 @@ function RoomForm({ onValidSubmit, type }: ReusableFormComponentProps2) {
 			schema: schema,
 			entity: 'rooms',
 			query: getRoomQuery(id),
-			serverDebounceFields: { name: 500 },
+			serverDebounceFields: { name: 500, description: 500 },
 		},
 		tanstackOptions: ({ handleIdbUpdate, handleIdbCreate, zodSchema }) => ({
 			validators: { onChange: zodSchema },
@@ -35,7 +35,7 @@ function RoomForm({ onValidSubmit, type }: ReusableFormComponentProps2) {
 			},
 			onSubmit: async () => {
 				const id = await handleIdbCreate(); // create entity
-				navigate({ to: '/people/$id', params: { id }, search: { search: '' } }); // nav to new person
+				navigate({ to: '/people/$id', params: { id }, search: { search: '' } }); // nav to new room
 				onValidSubmit?.(); // close modal
 			},
 		}),
@@ -50,6 +50,19 @@ function RoomForm({ onValidSubmit, type }: ReusableFormComponentProps2) {
 						className={`${type === 'update' && !field.idb.synced ? 'unsynced' : ''}`}
 						error={getErrorMessageForField(field)}
 						label="Name"
+						value={field.state.value}
+						onChange={e => field.handleChange(e.target.value)}
+					/>
+				)}
+			/>
+
+			<personForm.Field
+				name="description"
+				children={field => (
+					<Textarea
+						className={`${type === 'update' && !field.idb.synced ? 'unsynced' : ''}`}
+						error={getErrorMessageForField(field)}
+						label="Description"
 						value={field.state.value}
 						onChange={e => field.handleChange(e.target.value)}
 					/>

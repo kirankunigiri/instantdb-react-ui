@@ -10,6 +10,7 @@
 	},
 	"dependencies": {
 		"@instantdb/react": "^0.19.6",
+		"@mantine/code-highlight": "^7.17.0",
 		"@mantine/core": "^7.17.0",
 		"@mantine/dates": "^7.17.0",
 		"@mantine/form": "^7.17.0",

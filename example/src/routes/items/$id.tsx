@@ -17,9 +17,6 @@ function ItemDetail() {
 		<div className="flex grow flex-col justify-between">
 			<div>
 				<DetailHeader entity="items" id={params.id} route="/items" />
-				{/* <ItemForm type="update" /> */}
-
-				<Divider my="md" />
 				<ItemForm2 type="update" />
 			</div>
 

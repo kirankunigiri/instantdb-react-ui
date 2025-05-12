@@ -14,8 +14,10 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as RoomsLayoutImport } from './routes/rooms/layout'
 import { Route as PeopleLayoutImport } from './routes/people/layout'
 import { Route as ItemsLayoutImport } from './routes/items/layout'
+import { Route as CompareLayoutImport } from './routes/compare/layout'
 import { Route as IndexImport } from './routes/index'
 import { Route as AboutIndexImport } from './routes/about/index'
+import { Route as RoomsIdImport } from './routes/rooms/$id'
 import { Route as PeopleIdImport } from './routes/people/$id'
 import { Route as ItemsIdImport } from './routes/items/$id'
 
@@ -39,6 +41,12 @@ const ItemsLayoutRoute = ItemsLayoutImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const CompareLayoutRoute = CompareLayoutImport.update({
+  id: '/compare',
+  path: '/compare',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
@@ -49,6 +57,12 @@ const AboutIndexRoute = AboutIndexImport.update({
   id: '/about/',
   path: '/about/',
   getParentRoute: () => rootRoute,
+} as any)
+
+const RoomsIdRoute = RoomsIdImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => RoomsLayoutRoute,
 } as any)
 
 const PeopleIdRoute = PeopleIdImport.update({
@@ -72,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/compare': {
+      id: '/compare'
+      path: '/compare'
+      fullPath: '/compare'
+      preLoaderRoute: typeof CompareLayoutImport
       parentRoute: typeof rootRoute
     }
     '/items': {
@@ -109,6 +130,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PeopleIdImport
       parentRoute: typeof PeopleLayoutImport
     }
+    '/rooms/$id': {
+      id: '/rooms/$id'
+      path: '/$id'
+      fullPath: '/rooms/$id'
+      preLoaderRoute: typeof RoomsIdImport
+      parentRoute: typeof RoomsLayoutImport
+    }
     '/about/': {
       id: '/about/'
       path: '/about'
@@ -145,34 +173,52 @@ const PeopleLayoutRouteWithChildren = PeopleLayoutRoute._addFileChildren(
   PeopleLayoutRouteChildren,
 )
 
+interface RoomsLayoutRouteChildren {
+  RoomsIdRoute: typeof RoomsIdRoute
+}
+
+const RoomsLayoutRouteChildren: RoomsLayoutRouteChildren = {
+  RoomsIdRoute: RoomsIdRoute,
+}
+
+const RoomsLayoutRouteWithChildren = RoomsLayoutRoute._addFileChildren(
+  RoomsLayoutRouteChildren,
+)
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/compare': typeof CompareLayoutRoute
   '/items': typeof ItemsLayoutRouteWithChildren
   '/people': typeof PeopleLayoutRouteWithChildren
-  '/rooms': typeof RoomsLayoutRoute
+  '/rooms': typeof RoomsLayoutRouteWithChildren
   '/items/$id': typeof ItemsIdRoute
   '/people/$id': typeof PeopleIdRoute
+  '/rooms/$id': typeof RoomsIdRoute
   '/about': typeof AboutIndexRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/compare': typeof CompareLayoutRoute
   '/items': typeof ItemsLayoutRouteWithChildren
   '/people': typeof PeopleLayoutRouteWithChildren
-  '/rooms': typeof RoomsLayoutRoute
+  '/rooms': typeof RoomsLayoutRouteWithChildren
   '/items/$id': typeof ItemsIdRoute
   '/people/$id': typeof PeopleIdRoute
+  '/rooms/$id': typeof RoomsIdRoute
   '/about': typeof AboutIndexRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
+  '/compare': typeof CompareLayoutRoute
   '/items': typeof ItemsLayoutRouteWithChildren
   '/people': typeof PeopleLayoutRouteWithChildren
-  '/rooms': typeof RoomsLayoutRoute
+  '/rooms': typeof RoomsLayoutRouteWithChildren
   '/items/$id': typeof ItemsIdRoute
   '/people/$id': typeof PeopleIdRoute
+  '/rooms/$id': typeof RoomsIdRoute
   '/about/': typeof AboutIndexRoute
 }
 
@@ -180,46 +226,54 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/compare'
     | '/items'
     | '/people'
     | '/rooms'
     | '/items/$id'
     | '/people/$id'
+    | '/rooms/$id'
     | '/about'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/compare'
     | '/items'
     | '/people'
     | '/rooms'
     | '/items/$id'
     | '/people/$id'
+    | '/rooms/$id'
     | '/about'
   id:
     | '__root__'
     | '/'
+    | '/compare'
     | '/items'
     | '/people'
     | '/rooms'
     | '/items/$id'
     | '/people/$id'
+    | '/rooms/$id'
     | '/about/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CompareLayoutRoute: typeof CompareLayoutRoute
   ItemsLayoutRoute: typeof ItemsLayoutRouteWithChildren
   PeopleLayoutRoute: typeof PeopleLayoutRouteWithChildren
-  RoomsLayoutRoute: typeof RoomsLayoutRoute
+  RoomsLayoutRoute: typeof RoomsLayoutRouteWithChildren
   AboutIndexRoute: typeof AboutIndexRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CompareLayoutRoute: CompareLayoutRoute,
   ItemsLayoutRoute: ItemsLayoutRouteWithChildren,
   PeopleLayoutRoute: PeopleLayoutRouteWithChildren,
-  RoomsLayoutRoute: RoomsLayoutRoute,
+  RoomsLayoutRoute: RoomsLayoutRouteWithChildren,
   AboutIndexRoute: AboutIndexRoute,
 }
 
@@ -234,6 +288,7 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/compare",
         "/items",
         "/people",
         "/rooms",
@@ -242,6 +297,9 @@ export const routeTree = rootRoute
     },
     "/": {
       "filePath": "index.tsx"
+    },
+    "/compare": {
+      "filePath": "compare/layout.tsx"
     },
     "/items": {
       "filePath": "items/layout.tsx",
@@ -256,7 +314,10 @@ export const routeTree = rootRoute
       ]
     },
     "/rooms": {
-      "filePath": "rooms/layout.tsx"
+      "filePath": "rooms/layout.tsx",
+      "children": [
+        "/rooms/$id"
+      ]
     },
     "/items/$id": {
       "filePath": "items/$id.tsx",
@@ -265,6 +326,10 @@ export const routeTree = rootRoute
     "/people/$id": {
       "filePath": "people/$id.tsx",
       "parent": "/people"
+    },
+    "/rooms/$id": {
+      "filePath": "rooms/$id.tsx",
+      "parent": "/rooms"
     },
     "/about/": {
       "filePath": "about/index.tsx"

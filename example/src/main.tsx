@@ -1,5 +1,6 @@
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
+import '@mantine/code-highlight/styles.css';
 import '~client/index.css';
 import '~client/styles/button.css';
 import '~client/styles/form.css';

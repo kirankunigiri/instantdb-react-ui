@@ -3,7 +3,7 @@ import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import type { FileRoutesByPath } from '@tanstack/react-router';
 import { Link } from '@tanstack/react-router';
 import { type IconType } from 'react-icons';
-import { LuDoorOpen, LuExternalLink, LuInfo, LuMoon, LuSun, LuUsers } from 'react-icons/lu';
+import { LuDoorOpen, LuExternalLink, LuGitCompare, LuGitCompareArrows, LuInfo, LuMoon, LuSun, LuUsers } from 'react-icons/lu';
 import { MdOutlineCategory } from 'react-icons/md';
 
 import { routeTree } from '~client/routeTree.gen';
@@ -23,6 +23,7 @@ export const organizedRoutes: RouteGroup = {
 		{ fullPath: '/items', icon: MdOutlineCategory },
 		{ fullPath: '/people', icon: LuUsers },
 		{ fullPath: '/rooms', icon: LuDoorOpen },
+		{ fullPath: '/compare', icon: LuGitCompareArrows },
 	],
 	Info: [
 		{ fullPath: '/about', icon: LuInfo },
@@ -37,7 +38,7 @@ export const sidebarLinks = [
 	},
 	{
 		title: 'Docs',
-		link: 'https://github.com/kirankunigiri/instantdb-react-ui/', // TODO: add docs link
+		link: 'https://instantdb-react-ui.kirankunigiri.com',
 		icon: LuExternalLink,
 	},
 ];
