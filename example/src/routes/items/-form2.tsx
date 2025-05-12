@@ -1,5 +1,6 @@
 import { InstaQLParams } from '@instantdb/react';
 import { Checkbox, MultiSelect, TextInput } from '@mantine/core';
+import { DatePickerInput } from '@mantine/dates';
 import { useStore } from '@tanstack/react-form';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
@@ -59,6 +60,8 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 			},
 			onSubmit: async ({ value }) => {
 				try {
+					console.log('submitting: ', value);
+
 					const id = await handleIdbCreate(); // create entity
 					navigate({ to: '/items/$id', params: { id }, search: { search: '' } }); // nav to new person
 					onValidSubmit?.(); // close modal
@@ -125,9 +128,22 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 					);
 				}}
 			/>
+
 			<itemForm.Field
 				name="owner"
 				children={field => <OwnerField field={field} form={itemForm} />}
+			/>
+
+			<itemForm.Field
+				name="date"
+				children={field => (
+					<DatePickerInput
+						label="Purchase Date"
+						value={new Date(field.state.value)}
+						onChange={value => field.handleChange(value?.getTime() ?? Date.now())}
+						error={getErrorMessageForField(field)}
+					/>
+				)}
 			/>
 
 			<SubmitButton type={type} form={itemForm} />

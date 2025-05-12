@@ -237,7 +237,6 @@ export function useIDBForm2<
 
 	// Use the extracted function to create schema and get defaults
 	const { zodSchema, defaults: zodDefaults } = createEntityZodSchemaV3(entity, links);
-	console.log(zodSchema._def.shape());
 
 	// Merge default values from options with zod/instant defaults
 	for (const [fieldName, fieldValue] of Object.entries(idbOptions.defaultValues || {})) {
@@ -403,7 +402,10 @@ export function useIDBForm2<
 		/** API for the IDB Form. */
 		idb: IDBFormApi
 	};
-	const newForm = form as NewForm;
+	const newForm = form as typeof form & {
+		/** API for the IDB Form. */
+		idb: IDBFormApi
+	};
 	newForm.idb = idbApi;
 
 	return newForm;

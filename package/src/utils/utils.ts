@@ -19,7 +19,7 @@ export type IdbZodAttr = DataAttrDef<any, any> & IdbZodSchema;
 export const addZod = <T extends DataAttrDef<any, any>>(
 	input: T,
 	zodSchema: ZodTypeAny,
-): IdbZodAttr => {
+) => {
 	return {
 		...input,
 		zodSchema: zodSchema,
@@ -97,13 +97,13 @@ export type ExtractFieldType<
 // Extract the form type for a form data type
 export type ExtractFormType<TFormData> = FormApi<
 	TFormData,
-	undefined,
-	undefined,
-	undefined,
-	undefined,
-	undefined,
-	undefined,
-	undefined,
-	undefined,
-	undefined
+	any,
+	any,
+	any,
+	any,
+	any,
+	any,
+	any,
+	any,
+	any
 >;

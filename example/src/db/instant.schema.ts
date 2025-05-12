@@ -48,7 +48,7 @@ const _schema = i.schema({
 			category: addZod(i.string(),
 				z.nativeEnum(ITEM_CATEGORY)),
 			date: addZod(i.date().indexed(),
-				z.number().min(new Date('2020-01-01').getTime()).default(Date.now)),
+				z.number().max(new Date().setHours(23, 59, 59, 999)).default(Date.now)),
 		}),
 		rooms: i.entity({
 			name: i.string().indexed(),
