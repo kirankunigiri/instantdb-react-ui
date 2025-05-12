@@ -1,14 +1,13 @@
 import { InstaQLEntity, InstaQLParams } from '@instantdb/react';
-import { MultiSelect, Space, TextInput } from '@mantine/core';
+import { Space, TextInput } from '@mantine/core';
+import { useNavigate } from '@tanstack/react-router';
 
 import schema, { AppSchema } from '~client/db/instant.schema';
-import { ReusableFormComponentProps } from '~client/lib/components/components';
+import { ReusableFormComponentProps2 } from '~client/lib/components/components';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
+import SubmitButton from '~client/lib/components/submit';
 import { useRouteId } from '~client/lib/utils';
-import { entityNames } from '~client/main';
-import { IDBForm } from '~instantdb-react-ui/form/form';
-import { createIdbEntityZodSchema } from '~instantdb-react-ui/form/zod';
-import { getEntityFields, getErrorMessageForField, IDBField, IDBRelationField } from '~instantdb-react-ui/index';
+import { getEntityFields, getErrorMessageForField } from '~instantdb-react-ui/index';
 import { useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
 
 type Room = InstaQLEntity<typeof schema, 'rooms'>;
@@ -16,12 +15,11 @@ const personFields = getEntityFields(schema, 'persons');
 
 const getPersonQuery = (id: string) => ({ persons: { $: { where: { id } }, room: {} } } satisfies InstaQLParams<AppSchema>);
 
-function PersonForm({ type, children, ...props }: ReusableFormComponentProps) {
+function PersonForm({ onValidSubmit, type }: ReusableFormComponentProps2) {
 	const id = useRouteId();
+	const navigate = useNavigate();
 
 	// const { zodSchema, defaults } = createIdbEntityZodSchema(schema, 'persons');
-	// console.log('person defaulgts');
-	// console.log(defaults);
 
 	const personForm = useIDBForm2({
 		idbOptions: {
@@ -40,7 +38,11 @@ function PersonForm({ type, children, ...props }: ReusableFormComponentProps) {
 					if (formApi.state.isValid) handleIdbUpdate();
 				},
 			},
-			onSubmit: handleIdbCreate,
+			onSubmit: async () => {
+				const id = await handleIdbCreate(); // create entity
+				navigate({ to: '/people/$id', params: { id }, search: { search: '' } }); // nav to new person
+				onValidSubmit?.(); // close modal
+			},
 		}),
 	});
 
@@ -89,6 +91,8 @@ function PersonForm({ type, children, ...props }: ReusableFormComponentProps) {
 					);
 				}}
 			/>
+
+			<SubmitButton type={type} form={personForm} />
 
 			{/* <IDBForm id={id} entity={entityNames.persons} type={type} {...props}>
 				<IDBField fieldName={personFields.name}>

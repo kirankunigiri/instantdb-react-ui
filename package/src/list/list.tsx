@@ -61,7 +61,7 @@ const NormalList = <
 	const { db } = useIDBReactUIProvider();
 
 	const constructedQuery = query || { [entity]: {} };
-	const { isLoading, error, data: rawData } = db.useQuery(constructedQuery);
+	const { isLoading, error, data: rawData } = db.useQuery(constructedQuery); // TODO: Bug in Instant, isLoading doesn't change to false when the query changes
 
 	// Extract the array from the entity property
 	const data = rawData ? rawData[entity] as any[] : null;

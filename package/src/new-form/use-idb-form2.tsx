@@ -47,7 +47,7 @@ interface IDBFormApi {
 	/** Updates the database with the current form values */
 	handleIdbUpdate: () => void
 	/** Creates a new entity in the database with the current form values */
-	handleIdbCreate: () => Promise<void>
+	handleIdbCreate: () => Promise<string>
 	/** Zod schema for the form entity */
 	zodSchema: z.ZodObject<any>
 }
@@ -199,7 +199,8 @@ export function useIDBForm2<
 			}
 		}
 
-		let baseTransaction = db.tx[entityName][id()]!.update(normalValues);
+		const newId = id();
+		let baseTransaction = db.tx[entityName][newId]!.update(normalValues);
 		for (const [fieldName, fieldValue] of Object.entries(linkValues)) {
 			const link = links[fieldName];
 			if (link) {
@@ -214,6 +215,7 @@ export function useIDBForm2<
 		}
 
 		await db.transact(baseTransaction);
+		return newId;
 	}, [options]);
 
 	const idbOptions = options.idbOptions;
@@ -235,6 +237,7 @@ export function useIDBForm2<
 
 	// Use the extracted function to create schema and get defaults
 	const { zodSchema, defaults: zodDefaults } = createEntityZodSchemaV3(entity, links);
+	console.log(zodSchema._def.shape());
 
 	// Merge default values from options with zod/instant defaults
 	for (const [fieldName, fieldValue] of Object.entries(idbOptions.defaultValues || {})) {

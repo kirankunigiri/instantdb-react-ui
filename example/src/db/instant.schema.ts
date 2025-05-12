@@ -75,6 +75,7 @@ const _schema = i.schema({
 // Make the owner and room links required
 makeLinkRequired(_schema.entities.items.links.owner, 'Please select at least one owner');
 makeLinkRequired(_schema.entities.items.links.room, 'Please select a room');
+makeLinkRequired(_schema.entities.persons.links.room, 'Please select a room');
 
 // This helps Typescript display nicer intellisense
 type _AppSchema = typeof _schema;

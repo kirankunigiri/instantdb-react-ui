@@ -50,8 +50,9 @@ function ItemList() {
 
 			{/* List View */}
 			<div className="left-list">
+
 				{/* Header */}
-				<ListHeader title="Items" entity={entityNames.items} modalContent={ItemForm} modalContent2={ItemForm2} />
+				<ListHeader title="Items" createTitle="Create Item" modalContent={ItemForm2} />
 
 				{/* Search Input */}
 				<TextInput

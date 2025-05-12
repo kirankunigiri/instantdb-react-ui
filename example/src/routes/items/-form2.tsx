@@ -1,22 +1,29 @@
 import { InstantUnknownSchema, InstaQLParams } from '@instantdb/react';
 import { Button, Checkbox, Divider, MultiSelect, NumberInput, Space, TextInput } from '@mantine/core';
 import { FieldApi, FormApi, useForm, useStore } from '@tanstack/react-form';
+import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
 import schema, { AppSchema, ITEM_CATEGORY } from '~client/db/instant.schema';
 import { ReusableFormComponentProps2 } from '~client/lib/components/components';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
+import SubmitButton from '~client/lib/components/submit';
 import { useRouteId } from '~client/lib/utils';
 import { createIdbEntityZodSchema } from '~instantdb-react-ui/form/zod';
 import { ExtractFormData, getErrorMessageForField } from '~instantdb-react-ui/index';
 import { useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
 
-const getItemQuery = (id: string) => ({ items: { room: {}, owner: { room: {} }, $: { where: { id } } } } satisfies InstaQLParams<AppSchema>);
+const getItemQuery = (id: string) => ({ items: {
+	room: {},
+	owner: { room: {} }, $: { where: { id } },
+} } satisfies InstaQLParams<AppSchema>);
+
 type FormData = ExtractFormData<AppSchema, ReturnType<typeof getItemQuery>, 'items'>;
 
 function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 	const id = useRouteId();
+	const navigate = useNavigate();
 
 	// const { zodSchema, defaults } = createIdbEntityZodSchema(schema, 'items');
 
@@ -56,7 +63,8 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 			},
 			onSubmit: async ({ value }) => {
 				try {
-					await handleIdbCreate(); // create entity
+					const id = await handleIdbCreate(); // create entity
+					navigate({ to: '/items/$id', params: { id }, search: { search: '' } }); // nav to new person
 					onValidSubmit?.(); // close modal
 				} catch (error: unknown) {
 					let message = 'Error submitting form';
@@ -76,7 +84,7 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 						className={`${type === 'update' && !field.idb.synced ? 'unsynced' : ''}`}
 						error={getErrorMessageForField(field)}
 						// label={`Name ${type === 'update' && `(Synced: ${JSON.stringify(field.idb.synced)})`}`}
-						label={`Name ${type === 'update' && field.idb.synced ? '(Synced)' : '(Unsynced)'}`}
+						label={`Name ${type === 'update' ? (field.idb.synced ? '(Synced)' : '(Unsynced)') : ''}`}
 						value={field.state.value}
 						onChange={e => field.handleChange(e.target.value)}
 					/>
@@ -128,21 +136,7 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 				children={field => <OwnerField field={field} form={itemForm} />}
 			/>
 
-			{type === 'create' && (
-				<itemForm.Subscribe
-					selector={state => [state.canSubmit, state.isSubmitting, state.isPristine]}
-					children={([canSubmit, isSubmitting, isPristine]) => (
-						<>
-							<Space h="xs" />
-							<div className="flex justify-end">
-								<Button disabled={!canSubmit || isPristine} onClick={() => itemForm.handleSubmit()} loading={isSubmitting}>
-									Submit
-								</Button>
-							</div>
-						</>
-					)}
-				/>
-			)}
+			<SubmitButton type={type} form={itemForm} />
 		</div>
 	);
 }

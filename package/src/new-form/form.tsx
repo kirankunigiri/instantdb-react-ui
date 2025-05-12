@@ -123,7 +123,7 @@ const UpdateForm = () => {
 	};
 
 	useEffect(() => {
-		db.subscribeQuery(queryObject, (resp) => {
+		db._core.subscribeQuery(queryObject, (resp) => {
 			if (resp.error) {
 				console.error(resp.error.message);
 				return;

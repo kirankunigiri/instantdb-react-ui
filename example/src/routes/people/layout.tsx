@@ -5,8 +5,10 @@ import { useEffect, useState } from 'react';
 
 import schema, { AppSchema } from '~client/db/instant.schema';
 import List from '~client/lib/list/list';
+import { ListHeader } from '~client/lib/list/list-header';
 import { OutletWrapper } from '~client/lib/outlet-wrapper';
 import { getIdbSearchQuery, validateSearch } from '~client/lib/utils';
+import PersonForm from '~client/routes/people/-form';
 import { useIDBPagination } from '~instantdb-react-ui/index';
 
 export const Route = createFileRoute('/people')({
@@ -51,8 +53,9 @@ function PersonList() {
 
 			{/* List View */}
 			<div className="left-list">
+
 				{/* Header */}
-				{/* <ListHeader title="People" entity={entityNames.persons} modalContent={PersonForm} /> */}
+				<ListHeader title="People" createTitle="Create person" modalContent={PersonForm} />
 
 				{/* Search Input */}
 				<TextInput
