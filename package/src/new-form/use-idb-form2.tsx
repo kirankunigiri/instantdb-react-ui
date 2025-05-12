@@ -9,13 +9,8 @@ import { EntityLinks } from '..';
 import { createEntityZodSchemaV3 } from '../form/zod';
 import { useNewReactContext } from '../utils/provider';
 
-export type ExtractFormData<
-	TSchema extends IContainEntitiesAndLinks<EntitiesDef, any>,
-	TQuery extends Record<string, any>,
-	TEntity extends keyof InstaQLResult<TSchema, TQuery>,
-> = NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never;
-
-export interface IContainEntitiesAndLinks<
+/** The schema of an InstantDB database */
+export interface IDBSchema<
 	Entities extends EntitiesDef,
 	Links extends LinksDef<Entities>,
 > {
@@ -23,7 +18,25 @@ export interface IContainEntitiesAndLinks<
 	links: Links
 }
 
-interface InstantValue {
+export type IDBSchemaType = IDBSchema<EntitiesDef, any>;
+export type IDBEntityType<T extends IDBSchemaType> = keyof T['entities'];
+export type IDBQueryType<T extends IDBSchemaType> = InstaQLParams<T>;
+
+/** Extract the type of an InstantDB entity from the InstantQL result */
+export type ExtractIDBEntityType<
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+> = NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never;
+
+// TODO: Unused
+export type ExtractFormData<
+	TSchema extends IDBSchema<EntitiesDef, any>,
+	TQuery extends Record<string, any>,
+	TEntity extends keyof InstaQLResult<TSchema, TQuery>,
+> = NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never;
+
+export interface InstantValue {
 	id: string
 }
 
@@ -41,26 +54,26 @@ interface IDBFormApi {
 
 /** An InstantDB wrapper for Tanstack Form. Gain type-safety and automatic database syncing. */
 export function useIDBForm2<
-	TSchema extends IContainEntitiesAndLinks<EntitiesDef, any>,
+	TSchema extends IDBSchema<EntitiesDef, any>,
 	TEntity extends keyof TSchema['entities'],
 	TQuery extends InstaQLParams<TSchema>,
 	TLinkQueries extends Partial<Record<keyof TSchema['entities'][TEntity]['links'], InstaQLParams<TSchema>>>,
 >(
 	options: {
-		idbOptions: Omit<FormOptions<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never, any, any, any, any, any, any, any, any, any>, 'defaultValues'> & {
+		idbOptions: Omit<FormOptions<ExtractIDBEntityType<TSchema, TEntity, TQuery>, any, any, any, any, any, any, any, any, any>, 'defaultValues'> & {
 			type: IDBFormType
 			schema: TSchema
 			entity: TEntity
 			query: TQuery
 			linkPickerQueries?: TLinkQueries
-			defaultValues?: Partial<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never>
-			serverDebounceFields?: Partial<Record<keyof (NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never), number>>
-			serverThrottleFields?: Partial<Record<keyof (NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never), number>>
+			defaultValues?: Partial<ExtractIDBEntityType<TSchema, TEntity, TQuery>>
+			serverDebounceFields?: Partial<Record<keyof ExtractIDBEntityType<TSchema, TEntity, TQuery>, number>>
+			serverThrottleFields?: Partial<Record<keyof ExtractIDBEntityType<TSchema, TEntity, TQuery>, number>>
 		}
-		tanstackOptions: (idbApi: IDBFormApi) => Omit<FormOptions<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never, any, any, any, any, any, any, any, any, any>, 'defaultValues'>
+		tanstackOptions: (idbApi: IDBFormApi) => Omit<FormOptions<ExtractIDBEntityType<TSchema, TEntity, TQuery>, any, any, any, any, any, any, any, any, any>, 'defaultValues'>
 	},
 ) {
-	type FormData = NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never;
+	type FormData = ExtractIDBEntityType<TSchema, TEntity, TQuery>;
 	type MyFormOptions = FormOptions<FormData, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>;
 
 	// Refs for managing timers and state

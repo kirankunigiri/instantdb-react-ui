@@ -1,9 +1,9 @@
-import { InstaQLEntity } from '@instantdb/react';
+import { InstaQLEntity, InstaQLParams } from '@instantdb/react';
 import { Pagination, ScrollArea, SegmentedControl, Space, TextInput } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
-import { AppSchema } from '~client/db/instant.schema';
+import schema, { AppSchema } from '~client/db/instant.schema';
 import List from '~client/lib/list/list';
 import { ListHeader } from '~client/lib/list/list-header';
 import { OutletWrapper } from '~client/lib/outlet-wrapper';
@@ -20,20 +20,22 @@ export const Route = createFileRoute('/people')({
 type ListMode = 'normal' | 'infinite' | 'paginated';
 
 function PersonList() {
-	const params = Route.useParams() as { id?: number };
+	const params = Route.useParams() as { id?: string };
 
-	// TODO: replace with instantdb utility types
-	const personQuery: IDBQuery = {
-		persons: {
-			$: {
-				order: { name: 'asc' },
-			},
-		},
-	};
+	// List people in alphabetical order
+	const personQuery = {
+		persons: { $: {
+			order: { name: 'asc' },
+			// where: {
+			// 	name: { $like: 'Bernice' },
+			// },
+		} },
+	} satisfies InstaQLParams<AppSchema>;
 
 	// Pagination
 	const pagination = useIDBPagination({
-		model: entityNames.persons,
+		schema: schema,
+		model: 'persons',
 		pageSize: 10,
 		query: personQuery,
 	});
@@ -77,41 +79,26 @@ function PersonList() {
 				{/* All list types */}
 				{/* List - Normal */}
 				{listMode === 'normal' && (
-
-				// wrapper version
-				// <List<Person>
-				// 	mode="normal"
-				// 	entity={entityNames.persons}
-				// 	query={personQuery}
-				// 	route="/people/$id"
-				// 	itemId={params.id}
-				// 	// search={search}
-				// 	render={person => (
-				// 		<p className="text-sm">{person.name}</p>
-				// 	)}
-				// />
-
-					// from scratch version
-					<div className="list-scrollarea overflow-y-scroll">
-						<IDBList<Person>
-							mode="normal"
-							entity={entityNames.persons}
-							query={personQuery}
-							render={(person, id) => (
-								<Link data-selected={params.id === id} className="list-item" to="/people/$id" params={{ id: person.id }}>
-									<p className="text-sm">{person.name}</p>
-								</Link>
-							)}
-						/>
-					</div>
+					<List
+						schema={schema}
+						mode="normal"
+						entity="persons"
+						query={personQuery}
+						route="/people/$id"
+						itemId={params.id}
+						render={(person, id) => (
+							<p className="text-sm">{person.name}</p>
+						)}
+					/>
 				)}
 
 				{/* List - Infinite */}
 				{listMode === 'infinite' && (
-					<List<Person>
+					<List
+						schema={schema}
+						entity="persons"
 						mode="infinite"
 						pageSize={10}
-						entity={entityNames.persons}
 						query={personQuery}
 						route="/people/$id"
 						itemId={params.id}
@@ -125,7 +112,9 @@ function PersonList() {
 				{/* List - Paginated */}
 				{listMode === 'paginated' && (
 					<>
-						<List<Person>
+						<List
+							schema={schema}
+							entity="persons"
 							mode="paginated"
 							pagination={pagination}
 							route="/people/$id"

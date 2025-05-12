@@ -1,45 +1,70 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { EntitiesDef, InstantSchemaDef, InstaQLParams, InstaQLResult, LinksDef } from '@instantdb/react';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 
+import { ExtractIDBEntityType, IDBEntityType, IDBQueryType, IDBSchemaType, InstantValue } from '../new-form/use-idb-form2';
 import { useIDBReactUIProvider } from '../utils/provider';
 
-interface BaseListProps<T> {
-	render: (item: T, id: string) => ReactNode
+interface BaseListProps<
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+> {
+	schema: TSchema
+	entity: TEntity
+	query?: TQuery
+	render: (item: ExtractIDBEntityType<TSchema, TEntity, TQuery>, id: string) => ReactNode
 	skeleton?: ReactNode
 	noResults?: ReactNode
 }
 
-type NormalListProps<T> = BaseListProps<T> & {
+type NormalListProps<
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+> = BaseListProps<TSchema, TEntity, TQuery> & {
 	mode?: 'normal'
-	entity: string
-	query?: any
 };
 
-type InfiniteListProps<T> = BaseListProps<T> & {
+type InfiniteListProps<
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+> = BaseListProps<TSchema, TEntity, TQuery> & {
 	mode: 'infinite'
-	entity: string
-	query?: any
 	pageSize?: number
 };
 
-type PaginatedListProps<T> = BaseListProps<T> & {
+type PaginatedListProps<
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+> = BaseListProps<TSchema, TEntity, TQuery> & {
 	mode: 'paginated'
-	pagination: PaginationState
+	pagination: PaginationState<TSchema, TEntity, TQuery>
 };
 
-export type IDBListProps<T> = NormalListProps<T> | InfiniteListProps<T> | PaginatedListProps<T>;
+export type IDBListProps<
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+> = NormalListProps<TSchema, TEntity, TQuery> | InfiniteListProps<TSchema, TEntity, TQuery> | PaginatedListProps<TSchema, TEntity, TQuery>;
 
 /** Standard list that loads all data at once */
-const NormalList = <T extends Record<string, any>>(props: NormalListProps<T>) => {
+const NormalList = <
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+>(props: NormalListProps<TSchema, TEntity, TQuery>) => {
 	const { entity, render, skeleton, query, noResults } = props;
-
 	const { db } = useIDBReactUIProvider();
+
 	const constructedQuery = query || { [entity]: {} };
 	const { isLoading, error, data: rawData } = db.useQuery(constructedQuery);
 
 	// Extract the array from the entity property
-	const data = rawData ? rawData[entity] as T[] : null;
+	const data = rawData ? rawData[entity] as any[] : null;
 
 	if (isLoading) return skeleton || null;
 	if (error || !data) return noResults || null;
@@ -57,7 +82,11 @@ const NormalList = <T extends Record<string, any>>(props: NormalListProps<T>) =>
 };
 
 /** Infinite list that loads more data when you scroll to the end of the list */
-const InfiniteList = <T extends Record<string, any>>(props: InfiniteListProps<T>) => {
+const InfiniteList = <
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+>(props: InfiniteListProps<TSchema, TEntity, TQuery>) => {
 	const { entity, render, skeleton, query, noResults, pageSize = 10 } = props;
 	const { db } = useIDBReactUIProvider();
 	const [limit, setLimit] = useState(pageSize);
@@ -74,7 +103,7 @@ const InfiniteList = <T extends Record<string, any>>(props: InfiniteListProps<T>
 	};
 
 	const { isLoading, error, data: rawData } = db.useQuery(constructedQuery);
-	const items = rawData ? rawData[entity] as T[] : [];
+	const items = rawData ? rawData[entity] as any[] : [];
 	const hasMore = items.length === limit;
 
 	useEffect(() => {
@@ -129,14 +158,23 @@ const InfiniteList = <T extends Record<string, any>>(props: InfiniteListProps<T>
 	);
 };
 
-interface PaginationOptions {
-	query?: any
-	model: string
+interface PaginationOptions<
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+> {
+	query?: TQuery
+	model: TEntity
 	pageSize?: number
+	schema: TSchema
 }
 
-interface PaginationState extends PaginationOptions {
-	items: any[]
+interface PaginationState<
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+> extends PaginationOptions<TSchema, TEntity, TQuery> {
+	items: ExtractIDBEntityType<TSchema, TEntity, TQuery>[]
 	page: number
 	totalPages: number
 	totalItems: number
@@ -144,7 +182,11 @@ interface PaginationState extends PaginationOptions {
 }
 
 /** Hook to get pagination state for a paginated list */
-export const useIDBPagination = (props: PaginationOptions): PaginationState => {
+export const useIDBPagination = <
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+>(props: PaginationOptions<TSchema, TEntity, TQuery>): PaginationState<TSchema, TEntity, TQuery> => {
 	const { db } = useIDBReactUIProvider();
 	const pageSize = props.pageSize || 10;
 	const [page, setPage] = useState(1);
@@ -165,7 +207,7 @@ export const useIDBPagination = (props: PaginationOptions): PaginationState => {
 				offset: (page - 1) * pageSize,
 			},
 		},
-	};
+	} as TQuery;
 
 	const { data: itemData } = db.useQuery(itemQuery);
 	const items = itemData?.[props.model] || [];
@@ -176,7 +218,7 @@ export const useIDBPagination = (props: PaginationOptions): PaginationState => {
 
 	return {
 		...props,
-		items,
+		items: items as ExtractIDBEntityType<TSchema, TEntity, TQuery>[],
 		page,
 		totalPages,
 		totalItems,
@@ -185,7 +227,11 @@ export const useIDBPagination = (props: PaginationOptions): PaginationState => {
 };
 
 /** Paginated list */
-const PaginatedList = <T extends Record<string, any>>(props: PaginatedListProps<T>) => {
+const PaginatedList = <
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+>(props: PaginatedListProps<TSchema, TEntity, TQuery>) => {
 	const { render, skeleton, noResults, pagination } = props;
 
 	if (!pagination || !pagination.items) return skeleton || null;
@@ -194,8 +240,8 @@ const PaginatedList = <T extends Record<string, any>>(props: PaginatedListProps<
 	return (
 		<>
 			{pagination.items.map(item => (
-				<div key={item.id}>
-					{render(item, item.id)}
+				<div key={(item as InstantValue).id}>
+					{render(item, (item as InstantValue).id)}
 				</div>
 			))}
 		</>
@@ -203,14 +249,18 @@ const PaginatedList = <T extends Record<string, any>>(props: PaginatedListProps<
 };
 
 /** instantdb-react-ui list component, with support for normal, infinite, and paginated modes */
-export const IDBList = <T extends Record<string, any>>(props: IDBListProps<T>) => {
+export const IDBList = <
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+>(props: IDBListProps<TSchema, TEntity, TQuery>) => {
 	const { mode } = props;
 	if (mode === 'infinite') {
-		return <InfiniteList<T> {...props} />;
+		return <InfiniteList {...props} />;
 	} else if (mode === 'paginated') {
-		return <PaginatedList<T> {...props} />;
+		return <PaginatedList {...props} />;
 	}
 
 	// Default to normal list
-	return <NormalList<T> {...props} />;
+	return <NormalList {...props} />;
 };

@@ -1,16 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AttrsDefs, EntitiesDef, EntityDef, InstantSchemaDef, LinkAttrDef, LinksDef, ValueTypes } from '@instantdb/react';
+import { AttrsDefs, EntitiesDef, EntityDef, LinkAttrDef, ValueTypes } from '@instantdb/react';
 import { z } from 'zod';
 
+import { IContainEntitiesAndLinks } from '../new-form/use-idbform';
 import { generateZodEntitySchema, IdbZodAttr, IdbZodLink } from '../utils/utils';
-
-export interface IContainEntitiesAndLinks<
-	Entities extends EntitiesDef,
-	Links extends LinksDef<Entities>,
-> {
-	entities: Entities
-	links: Links
-}
 
 /**
  * Maps InstantDB types to Zod types.

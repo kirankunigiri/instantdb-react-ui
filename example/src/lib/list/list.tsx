@@ -1,22 +1,32 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ScrollArea } from '@mantine/core';
 import { Skeleton } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 
 import type { RouteFullPaths } from '~client/lib/sidebar';
 import type { SearchParams } from '~client/lib/utils';
-import { IDBList, type IDBListProps } from '~instantdb-react-ui/list/list';
+import { IDBList, IDBListProps } from '~instantdb-react-ui/list/list';
+import { IDBEntityType, IDBQueryType, IDBSchemaType } from '~instantdb-react-ui/new-form/use-idb-form2';
 
-type ListWrapperProps<T> = IDBListProps<T> & {
+// Extend IDBListProps with our custom wrapper props
+type ListWrapperProps<
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+> = IDBListProps<TSchema, TEntity, TQuery> & {
 	route: RouteFullPaths
 	itemId?: string
 	search?: SearchParams
 };
 
-function List<T extends Record<string, any>>({ itemId, search, route, ...idbListProps }: ListWrapperProps<T>) {
+// Use the same generic parameters as IDBList
+export function List<
+	TSchema extends IDBSchemaType,
+	TEntity extends IDBEntityType<TSchema>,
+	TQuery extends IDBQueryType<TSchema>,
+>({ itemId, search, route, ...idbListProps }: ListWrapperProps<TSchema, TEntity, TQuery>) {
 	return (
 		<ScrollArea className="list-scrollarea">
-			<IDBList<T>
+			<IDBList<TSchema, TEntity, TQuery>
 				{...idbListProps}
 
 				// Defaults
@@ -24,7 +34,7 @@ function List<T extends Record<string, any>>({ itemId, search, route, ...idbList
 				noResults={idbListProps.noResults ?? <p className="text-gray-500">No results found</p>}
 
 				// Render
-				render={(item: T, id: string) => (
+				render={(item, id) => (
 					<Link
 						key={id}
 						to={route}
@@ -41,6 +51,7 @@ function List<T extends Record<string, any>>({ itemId, search, route, ...idbList
 	);
 }
 
+/** Skeleton loading UI for the list */
 function ListSkeleton() {
 	return (
 		<>
