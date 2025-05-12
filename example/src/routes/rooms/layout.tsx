@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import schema from '~client/db/instant.schema';
 import { db } from '~client/main';
 import { useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
-import { ExtractFormData } from '~instantdb-react-ui/new-form/use-idbform';
+import { ExtractFormDataType } from '~instantdb-react-ui/new-form/use-idbform';
 
 export const Route = createFileRoute('/rooms')({
 	component: RouteComponent,
@@ -152,27 +152,7 @@ function TypedForm() {
 	);
 }
 
-type FormData = ExtractFormData<typeof schema, typeof itemQuery, 'items'>;
-
-// TODO: Change owner filter based on the room
-function OwnerField({ field, itemForm }: {
-	field: FieldApi<FormData, 'owner'>
-	itemForm: ReactFormExtendedApi<FormData>
-}) {
-	const room = useStore(itemForm.store, state => state.values.room);
-	const linkData = field.idb.data || [];
-	const filteredLinkData = linkData.filter(person => person.room!.id === room!.id);
-
-	return (
-		<MultiSelect
-			label={`Owner(s) ${field.state.value?.map(item => item!.name).join(', ')}`}
-			value={field.state.value?.map(item => item!.id)}
-			data={filteredLinkData.map(item => ({ label: item!.name, value: item!.id }))}
-			onChange={value => field.idb.handleChange(linkData.filter(link => value.includes(link!.id)))}
-			error={field.state.meta.errors.join(', ')}
-		/>
-	);
-}
+type FormData = ExtractFormDataType<typeof schema, typeof itemQuery, 'items'>;
 
 function RouteComponent() {
 	console.log('rendering route');

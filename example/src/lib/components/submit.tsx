@@ -1,11 +1,12 @@
 import { Button, Space } from '@mantine/core';
-import { FormApi, useForm } from '@tanstack/react-form';
+import { ReactFormExtendedApi } from '@tanstack/react-form';
 
 import { IDBFormType } from '~instantdb-react-ui/index';
 
 interface SubmitButtonProps {
 	type: IDBFormType
-	form: ReturnType<typeof useForm>
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	form: ReactFormExtendedApi<any, any, any, any, any, any, any, any, any, any>
 }
 
 function SubmitButton(props: SubmitButtonProps) {

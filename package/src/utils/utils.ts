@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DataAttrDef, LinkAttrDef } from '@instantdb/react';
-import { FieldApi } from '@tanstack/react-form';
+import { DeepKeys, DeepValue, FieldApi, FormApi } from '@tanstack/react-form';
 import { useCallback, useRef, useState } from 'react';
 import { z, ZodError, ZodTypeAny } from 'zod';
 
@@ -85,3 +85,25 @@ export const getErrorMessageForField = (field: FieldApi<any, any, any, any, any,
 	if (!field.state.meta.isDirty) return null;
 	return (field.state.meta.errors as ZodError[]).map(error => error.message).join(', ');
 };
+
+/** Get a field type from a tanstack form */
+export type ExtractFieldType<
+	TFormData,
+	TFieldName extends DeepKeys<TFormData>,
+	TFieldValue extends DeepValue<TFormData, TFieldName> = DeepValue<TFormData, TFieldName>,
+
+> = FieldApi<TFormData, TFieldName, TFieldValue, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any>;
+
+// Extract the form type for a form data type
+export type ExtractFormType<TFormData> = FormApi<
+	TFormData,
+	undefined,
+	undefined,
+	undefined,
+	undefined,
+	undefined,
+	undefined,
+	undefined,
+	undefined,
+	undefined
+>;

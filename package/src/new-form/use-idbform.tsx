@@ -7,7 +7,7 @@ import { EntityLinks } from '..';
 import { createEntityZodSchemaV3 } from '../form/zod';
 import { useNewReactContext } from '../utils/provider';
 
-export type ExtractFormData<
+export type ExtractFormDataType<
 	TSchema extends IContainEntitiesAndLinks<EntitiesDef, any>,
 	TQuery extends Record<string, any>,
 	TEntity extends keyof InstaQLResult<TSchema, TQuery>,

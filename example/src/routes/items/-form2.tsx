@@ -1,25 +1,21 @@
-import { InstantUnknownSchema, InstaQLParams } from '@instantdb/react';
-import { Button, Checkbox, Divider, MultiSelect, NumberInput, Space, TextInput } from '@mantine/core';
-import { FieldApi, FormApi, useForm, useStore } from '@tanstack/react-form';
+import { InstaQLParams } from '@instantdb/react';
+import { Checkbox, MultiSelect, TextInput } from '@mantine/core';
+import { useStore } from '@tanstack/react-form';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
-import { z } from 'zod';
 
 import schema, { AppSchema, ITEM_CATEGORY } from '~client/db/instant.schema';
 import { ReusableFormComponentProps2 } from '~client/lib/components/components';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
 import SubmitButton from '~client/lib/components/submit';
 import { useRouteId } from '~client/lib/utils';
-import { createIdbEntityZodSchema } from '~instantdb-react-ui/form/zod';
-import { ExtractFormData, getErrorMessageForField } from '~instantdb-react-ui/index';
+import { ExtractFieldType, ExtractFormDataType, ExtractFormType, getErrorMessageForField } from '~instantdb-react-ui/index';
 import { useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
 
 const getItemQuery = (id: string) => ({ items: {
 	room: {},
 	owner: { room: {} }, $: { where: { id } },
 } } satisfies InstaQLParams<AppSchema>);
-
-type FormData = ExtractFormData<AppSchema, ReturnType<typeof getItemQuery>, 'items'>;
 
 function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 	const id = useRouteId();
@@ -83,7 +79,6 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 					<TextInput
 						className={`${type === 'update' && !field.idb.synced ? 'unsynced' : ''}`}
 						error={getErrorMessageForField(field)}
-						// label={`Name ${type === 'update' && `(Synced: ${JSON.stringify(field.idb.synced)})`}`}
 						label={`Name ${type === 'update' ? (field.idb.synced ? '(Synced)' : '(Unsynced)') : ''}`}
 						value={field.state.value}
 						onChange={e => field.handleChange(e.target.value)}
@@ -120,7 +115,6 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 					return (
 						<SearchableSelect
 							label="Room"
-							// clearable
 							value={field.state.value?.id}
 							data={linkData.map(item => ({ label: item!.name, value: item!.id }))}
 							onChange={(value) => {
@@ -141,9 +135,11 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 	);
 }
 
+type ItemFormDataType = ExtractFormDataType<AppSchema, ReturnType<typeof getItemQuery>, 'items'>;
+
 function OwnerField({ field, form }: {
-	field: FieldApi<FormData, 'owner', FormData['owner'], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>
-	form: FormApi<FormData, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>
+	field: ExtractFieldType<ItemFormDataType, 'owner'>
+	form: ExtractFormType<ItemFormDataType>
 }) {
 	const room = useStore(form.store, state => state.values.room);
 	const disabled = !room;
@@ -154,7 +150,7 @@ function OwnerField({ field, form }: {
 	return (
 		<MultiSelect
 			disabled={disabled}
-			label={`Owner(s) ${field.state.value?.map(item => item!.name).join(', ')}`}
+			label="Owner(s)"
 			value={field.state.value?.map(item => item!.id)}
 			data={filteredLinkData.map(item => ({ label: item!.name, value: item!.id }))}
 			onChange={(value) => {
