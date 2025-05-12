@@ -52,6 +52,14 @@ interface IDBFormApi {
 	zodSchema: z.ZodObject<any>
 }
 
+/** Checks if 2 values are different. Treats undefined and null as equal values */
+export const isDifferent = (a: any, b: any) => {
+	if ((a === undefined && b === null) || (a === null && b === undefined)) {
+		return false;
+	}
+	return JSON.stringify(a) !== JSON.stringify(b);
+};
+
 /** An InstantDB wrapper for Tanstack Form. Gain type-safety and automatic database syncing. */
 export function useIDBForm2<
 	TSchema extends IDBSchema<EntitiesDef, any>,
@@ -215,10 +223,18 @@ export function useIDBForm2<
 	const queryValueRef = useRef<any>(null);
 
 	const { db } = useNewReactContext();
-	const links = idbOptions.schema.entities[idbOptions.entity as string].links as EntityLinks;
+
+	// Extract link names from the query
+	const queryLinkNames = Object.keys(idbOptions.query[entityName] || {}).filter(key => key !== '$');
+	// Get only the links that are in the query. We don't want to add all links to our form and subscriptions
+	const entity = idbOptions.schema.entities[entityName];
+	const allLinks = entity.links as EntityLinks;
+	const links = Object.fromEntries(
+		Object.entries(allLinks).filter(([key]) => queryLinkNames.includes(key)),
+	);
 
 	// Use the extracted function to create schema and get defaults
-	const { zodSchema, defaults: zodDefaults } = createEntityZodSchemaV3(idbOptions.schema.entities[entityName]);
+	const { zodSchema, defaults: zodDefaults } = createEntityZodSchemaV3(entity, links);
 
 	// Merge default values from options with zod/instant defaults
 	for (const [fieldName, fieldValue] of Object.entries(idbOptions.defaultValues || {})) {
@@ -234,10 +250,10 @@ export function useIDBForm2<
 	});
 
 	// --------------------------------------------------------------------------------
-	// IDB Query - sync form with database
+	// IDB Query - receive external db changes and update form
 	useEffect(() => {
 		// ----------------------------------------
-		// Sync database with form
+		// Sync form with database
 		const unsubscribers: (() => void)[] = [];
 
 		if (idbOptions.type === 'update') {
@@ -255,11 +271,10 @@ export function useIDBForm2<
 						const prevValue = form.getFieldValue(fieldName);
 
 						// For relations, use the id as value. When unlinking, the value is undefined
-						const link = links[fieldName];
-						if (link && !newValue) newValue = '';
+						if (links[fieldName] && !newValue) newValue = '';
 
 						// Update the form if the value has changed
-						if (JSON.stringify(prevValue) !== JSON.stringify(newValue)) {
+						if (isDifferent(prevValue, newValue)) {
 							console.log(`Received Update for ${fieldName}: ${JSON.stringify(newValue)}`);
 							form.setFieldValue(fieldName, newValue);
 						}
@@ -299,7 +314,7 @@ export function useIDBForm2<
 	const checkIDBNeedsUpdate = (fieldName: string) => {
 		const oldValue = queryValueRef.current![fieldName];
 		const newValue = form.getFieldValue(fieldName);
-		const needsUpdate = JSON.stringify(oldValue) !== JSON.stringify(newValue);
+		const needsUpdate = isDifferent(oldValue, newValue);
 		if (needsUpdate) form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, synced: false }));
 		return needsUpdate;
 	};
@@ -313,7 +328,7 @@ export function useIDBForm2<
 		const newValue = form.getFieldValue(fieldName);
 
 		// Skip update if the value hasn't changed.
-		if (JSON.stringify(oldValue) === JSON.stringify(newValue)) {
+		if (!isDifferent(oldValue, newValue)) {
 			console.log(`Skipping server update for field: ${fieldName}`);
 			return transactions;
 		}
@@ -335,8 +350,7 @@ export function useIDBForm2<
 				// Find the difference between the old and new values, then unlink the old values and link the new values
 				const newValueList = newValue as InstantValue[];
 				// Imagine person A and B is linked. We unlink A (which updates) then unlink B (which doesn't update because the field requires at least one link and we have a validation error.). Now the field is empty, but when we link person C, we fail to unlink person B beause prevValue was null. The solution to this is to use the queryValue from the database as the prevValue instead of the field value
-				// TODO: For create form, you can't do this (use the field value instead)
-				const prevValues = oldValue as InstantValue[]; // TODO: replace with newValueList
+				const prevValues = oldValue as InstantValue[];
 				const idsToUnlink = prevValues
 					.filter((item: InstantValue) => !newValueList.some(newItem => newItem.id === item.id))
 					.map(item => item.id);

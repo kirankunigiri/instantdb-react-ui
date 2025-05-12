@@ -117,7 +117,7 @@ export function createIdbEntityZodSchema<
 }
 
 /** Creates a zod schema and default values for useForm's initialValues parameter */
-export function createEntityZodSchemaV3(entity: BasicEntity): {
+export function createEntityZodSchemaV3(entity: BasicEntity, links: Record<string, LinkAttrDef<any, any>>): {
 	zodSchema: z.ZodObject<any>
 	defaults: Record<string, any>
 } {
@@ -155,7 +155,7 @@ export function createEntityZodSchemaV3(entity: BasicEntity): {
 	});
 
 	// Add zod schema for links
-	Object.entries(entity.links).forEach(([key, link]) => {
+	Object.entries(links).forEach(([key, link]) => {
 		const linkSchema = (link as IdbZodLink).zodSchema;
 		if (link.cardinality === 'one') {
 			defaults[key] = null;

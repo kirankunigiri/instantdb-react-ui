@@ -4,7 +4,7 @@ import { FieldApi, FormApi, useForm, useStore } from '@tanstack/react-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
-import schema, { ITEM_CATEGORY } from '~client/db/instant.schema';
+import schema, { AppSchema, ITEM_CATEGORY } from '~client/db/instant.schema';
 import { ReusableFormComponentProps2 } from '~client/lib/components/components';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
 import { useRouteId } from '~client/lib/utils';
@@ -12,29 +12,13 @@ import { createIdbEntityZodSchema } from '~instantdb-react-ui/form/zod';
 import { ExtractFormData, getErrorMessageForField } from '~instantdb-react-ui/index';
 import { useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
 
-const getItemQuery = (id: string) => ({ items: { room: {}, owner: { room: {} }, $: { where: { id } } } } satisfies InstaQLParams<typeof schema>);
-type FormData = ExtractFormData<typeof schema, ReturnType<typeof getItemQuery>, 'items'>;
-
-const userSchema = z.object({
-	age: z.number().gte(13, 'You must be 13 to make an account'),
-	number: z.number().gte(20, 'Pick a number above 20'),
-});
+const getItemQuery = (id: string) => ({ items: { room: {}, owner: { room: {} }, $: { where: { id } } } } satisfies InstaQLParams<AppSchema>);
+type FormData = ExtractFormData<AppSchema, ReturnType<typeof getItemQuery>, 'items'>;
 
 function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 	const id = useRouteId();
-	console.log('rendering form');
 
 	const { zodSchema, defaults } = createIdbEntityZodSchema(schema, 'items');
-
-	const form = useForm({
-		defaultValues: {
-			age: 0,
-			number: 0,
-		},
-		validators: {
-			onChange: userSchema,
-		},
-	});
 
 	const itemForm = useIDBForm2({
 		idbOptions: {
@@ -82,42 +66,6 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 			},
 		}),
 	});
-
-	// const itemForm = useIDBForm({
-	// 	type,
-	// 	schema,
-	// 	entity: 'items',
-	// 	query: getItemQuery(id),
-	// 	debounceFields: {
-	// 		name: 500,
-	// 	},
-	// 	defaultValues: {
-	// 		name: '',
-	// 		shareable: false,
-	// 		category: ITEM_CATEGORY.Other,
-	// 	},
-	// 	linkPickerQueries: {
-	// 		// Owner picker - get list of all people and their rooms (to filter by room later)
-	// 		owner: { persons: { room: {}, $: { order: { name: 'asc' } } } },
-	// 		// Room picker - get list of all rooms
-	// 		room: { rooms: { $: { order: { name: 'asc' } } } },
-	// 	},
-	// 	onSubmit: async ({ value, idbSubmit }) => {
-	// 		console.log('valid submit');
-	// 		try {
-	// 			// TODO: fix idbSubmit first
-	// 			await idbSubmit(value);
-	// 			onValidSubmit?.();
-	// 		} catch (error) {
-	// 			console.error(error);
-	// 			toast.error('Error submitting form');
-	// 		}
-	// 	},
-	// 	onSubmitInvalid: (errors) => {
-	// 		console.log('invalid submit');
-	// 		console.log(errors);
-	// 	},
-	// });
 
 	return (
 		<div className="flex flex-col gap-1">
@@ -180,41 +128,6 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 				children={field => <OwnerField field={field} form={itemForm} />}
 			/>
 
-			<Divider my="xl" />
-			<div>
-				<form.Field
-					name="age"
-					// listeners={{
-					// 	onChange: ({ fieldApi, value }) => {
-					// 		fieldApi.validate('change');
-					// 		console.log(`age changed to ${value}`, fieldApi.getMeta().errors.length);
-					// 	},
-					// }}
-					children={(field) => {
-						return (
-							<NumberInput
-								label={`${field.state.meta.isDirty}`}
-								value={field.state.value}
-								onChange={e => field.handleChange(e)}
-								error={getErrorMessageForField(field)}
-							/>
-						);
-					}}
-				/>
-				<form.Field
-					name="number"
-					children={(field) => {
-						return (
-							<NumberInput
-								label={`${field.state.meta.isDirty}`}
-								value={field.state.value}
-								onChange={e => field.handleChange(e)}
-								error={getErrorMessageForField(field)}
-							/>
-						);
-					}}
-				/>
-			</div>
 			{type === 'create' && (
 				<itemForm.Subscribe
 					selector={state => [state.canSubmit, state.isSubmitting, state.isPristine]}
