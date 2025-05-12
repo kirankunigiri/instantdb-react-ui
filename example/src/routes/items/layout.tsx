@@ -7,7 +7,7 @@ import List from '~client/lib/list/list';
 import { ListHeader } from '~client/lib/list/list-header';
 import { OutletWrapper } from '~client/lib/outlet-wrapper';
 import { getIdbSearchQueryForField, validateSearch } from '~client/lib/utils';
-import ItemForm2 from '~client/routes/items/-form2';
+import ItemForm from '~client/routes/items/-form';
 
 export const Route = createFileRoute('/items')({
 	component: ItemList,
@@ -50,7 +50,7 @@ function ItemList() {
 			<div className="left-list">
 
 				{/* Header */}
-				<ListHeader title="Items" createTitle="Create Item" modalContent={ItemForm2} />
+				<ListHeader title="Items" createTitle="Create Item" modalContent={ItemForm} />
 
 				{/* Search Input */}
 				<TextInput

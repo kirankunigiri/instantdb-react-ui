@@ -2,7 +2,7 @@
 import { AttrsDefs, EntitiesDef, EntityDef, LinkAttrDef, ValueTypes } from '@instantdb/react';
 import { z } from 'zod';
 
-import { IContainEntitiesAndLinks } from '../new-form/use-idbform';
+import { IDBSchema } from '../new-form/use-idb-form2';
 import { generateZodEntitySchema, IdbZodAttr, IdbZodLink } from '../utils/utils';
 
 /**
@@ -48,7 +48,7 @@ function getDefaultValueByType(valueType: string): any {
 type BasicEntity = EntityDef<AttrsDefs, Record<string, LinkAttrDef<any, any>>, void>;
 
 export function createIdbEntityZodSchema<
-	TSchema extends IContainEntitiesAndLinks<EntitiesDef, any>,
+	TSchema extends IDBSchema<EntitiesDef, any>,
 	TEntity extends keyof TSchema['entities'],
 >(
 	schema: TSchema,

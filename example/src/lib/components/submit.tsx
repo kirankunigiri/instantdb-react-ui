@@ -1,7 +1,8 @@
 import { Button, Space } from '@mantine/core';
 import { FormApi, ReactFormApi, ReactFormExtendedApi } from '@tanstack/react-form';
 
-import { ExtractFormType, IDBFormType } from '~instantdb-react-ui/index';
+import { IDBExtractFormType } from '~instantdb-react-ui/index';
+import { IDBFormType } from '~instantdb-react-ui/new-form/use-idb-form2';
 
 interface SubmitButtonProps {
 	type: IDBFormType

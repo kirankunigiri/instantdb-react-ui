@@ -10,8 +10,8 @@ import { ReusableFormComponentProps2 } from '~client/lib/components/components';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
 import SubmitButton from '~client/lib/components/submit';
 import { useRouteId } from '~client/lib/utils';
-import { ExtractFieldType, ExtractFormDataType, ExtractFormType, getErrorMessageForField } from '~instantdb-react-ui/index';
-import { useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
+import { getErrorMessageForField, IDBExtractFieldType, IDBExtractFormType } from '~instantdb-react-ui/index';
+import { ExtractFormDataType, useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
 
 const getItemQuery = (id: string) => ({
 	items: {
@@ -20,10 +20,11 @@ const getItemQuery = (id: string) => ({
 	},
 } satisfies InstaQLParams<AppSchema>);
 
-function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
+function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps2) {
 	const id = useRouteId();
 	const navigate = useNavigate();
 
+	// Example of how to create a zod schema for the item form in case you need it outside of useIDBForm
 	// const { zodSchema, defaults } = createIdbEntityZodSchema(schema, 'items');
 
 	const itemForm = useIDBForm2({
@@ -156,8 +157,8 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 type ItemFormDataType = ExtractFormDataType<AppSchema, ReturnType<typeof getItemQuery>, 'items'>;
 
 function OwnerField({ field, form }: {
-	field: ExtractFieldType<ItemFormDataType, 'owner'>
-	form: ExtractFormType<ItemFormDataType>
+	field: IDBExtractFieldType<ItemFormDataType, 'owner'>
+	form: IDBExtractFormType<ItemFormDataType>
 }) {
 	const room = useStore(form.store, state => state.values.room);
 	const disabled = !room;
@@ -179,4 +180,4 @@ function OwnerField({ field, form }: {
 	);
 }
 
-export default ItemForm2;
+export default ItemForm;

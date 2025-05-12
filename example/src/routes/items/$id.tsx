@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { DetailHeader } from '~client/lib/detail-header';
-import ItemForm2 from '~client/routes/items/-form2';
+import ItemForm from '~client/routes/items/-form';
 
 export const Route = createFileRoute('/items/$id')({
 	component: ItemDetail,
@@ -14,7 +14,7 @@ function ItemDetail() {
 		<div className="flex grow flex-col justify-between">
 			<div>
 				<DetailHeader entity="items" id={params.id} route="/items" />
-				<ItemForm2 type="update" />
+				<ItemForm type="update" />
 			</div>
 		</div>
 	);

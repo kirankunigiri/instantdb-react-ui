@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from 'react';
 import { z, ZodError, ZodTypeAny } from 'zod';
 
 import { IDBFormState } from '../form/form';
+import { IDBFieldMeta } from '../new-form/use-idb-form2';
 
 interface IdbZodSchema {
 	/** The zod schema for the attribute */
@@ -68,19 +69,6 @@ export const getEntityFields = <
 };
 // Example usage - const itemFields = getEntityFields(schema, 'items');
 
-/** This hook will automatically re-render your parent component when the IDBForm state changes */
-export const useIDBFormState = () => {
-	const formRef = useRef<IDBFormState>(null);
-	const [formState, setFormState] = useState<IDBFormState>(null);
-
-	// useCallback will avoid unnecessary re-renders when passing handleFormChange to IDBForm
-	const handleFormChange = useCallback(() => {
-		if (formRef.current) setFormState(formRef.current);
-	}, [formRef]);
-
-	return { formRef, formState, handleFormChange };
-};
-
 /** Get readable error message for field. Returns null if the field hasn't been touched */
 export const getErrorMessageForField = (field: FieldApi<any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any>) => {
 	if (!field.state.meta.isDirty) return null;
@@ -88,15 +76,16 @@ export const getErrorMessageForField = (field: FieldApi<any, any, any, any, any,
 };
 
 /** Get a field type from a tanstack form */
-export type ExtractFieldType<
+export type IDBExtractFieldType<
 	TFormData,
 	TFieldName extends DeepKeys<TFormData>,
 	TFieldValue extends DeepValue<TFormData, TFieldName> = DeepValue<TFormData, TFieldName>,
-
-> = FieldApi<TFormData, TFieldName, TFieldValue, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any>;
+> = FieldApi<TFormData, TFieldName, TFieldValue, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any> & {
+	idb: IDBFieldMeta<TFieldValue>
+};
 
 // Extract the form type for a form data type
-export type ExtractFormType<TFormData> = FormApi<
+export type IDBExtractFormType<TFormData> = FormApi<
 	TFormData,
 	any,
 	any,

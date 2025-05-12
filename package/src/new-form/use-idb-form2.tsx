@@ -5,9 +5,18 @@ import { DeepValue, FieldApi, FormApi, FormOptions, formOptions, useForm } from 
 import { useCallback, useEffect, useRef } from 'react';
 import { z } from 'zod';
 
-import { EntityLinks } from '..';
 import { createEntityZodSchemaV3 } from '../form/zod';
 import { useNewReactContext } from '../utils/provider';
+
+// TODO: replace with instantdb types
+interface EntityLink {
+	entityName: string
+	cardinality: 'one' | 'many'
+}
+export type EntityLinks = Record<string, EntityLink>;
+
+/** The type of form to be used. Either update or create */
+export type IDBFormType = 'update' | 'create';
 
 /** The schema of an InstantDB database */
 export interface IDBSchema<
@@ -29,8 +38,8 @@ export type ExtractIDBEntityType<
 	TQuery extends IDBQueryType<TSchema>,
 > = NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never;
 
-// TODO: Unused
-export type ExtractFormData<
+/** A slightly more permissive version of ExtractIDBEntityType for use with custom components */
+export type ExtractFormDataType<
 	TSchema extends IDBSchema<EntitiesDef, any>,
 	TQuery extends Record<string, any>,
 	TEntity extends keyof InstaQLResult<TSchema, TQuery>,
@@ -40,14 +49,12 @@ export interface InstantValue {
 	id: string
 }
 
-export type IDBFormType = 'update' | 'create';
-
 /** API for the IDB Form. This is passed to the tanstackOptions callback and can be accessed by the returned form */
 interface IDBFormApi {
 	/** Updates the database with the current form values */
 	handleIdbUpdate: () => void
-	/** Creates a new entity in the database with the current form values */
-	handleIdbCreate: () => Promise<string>
+	/** Creates a new entity in the database with the current form values, and returns the id */
+	handleIdbCreate: () => Promise<string | undefined>
 	/** Zod schema for the form entity */
 	zodSchema: z.ZodObject<any>
 }
@@ -378,9 +385,12 @@ export function useIDBForm2<
 
 	// --------------------------------------------------------------------------------
 	// Wrap field component
+	// TODO: instead of creating a new field, just replace the type and use field.state.meta.idbLinkData
 	const OriginalField = form.Field;
 	const WrappedField = <TName extends keyof FormData & string>(props: {
-		children: (field: FieldApi<FormData, TName, DeepValue<FormData, TName>, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>) => React.ReactNode
+		children: (field: FieldApi<FormData, TName, DeepValue<FormData, TName>, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined> & {
+			idb: IDBFieldMeta<DeepValue<FormData, TName>>
+		}) => React.ReactNode
 		name: TName
 		[key: string]: any
 	}) => {
@@ -390,7 +400,7 @@ export function useIDBForm2<
 				children={(field: FieldApi<FormData, TName, DeepValue<FormData, TName>, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>) => {
 					// @ts-expect-error - custom metadata
 					field.idb = field.state.meta;
-					return props.children(field);
+					return props.children(field as any);
 				}}
 			/>
 		);
@@ -398,14 +408,12 @@ export function useIDBForm2<
 	WrappedField.displayName = 'WrappedField';
 	form.Field = WrappedField as any;
 
-	type NewForm = typeof form & {
+	type NewForm = Omit<typeof form, 'Field'> & {
 		/** API for the IDB Form. */
 		idb: IDBFormApi
+		Field: typeof WrappedField
 	};
-	const newForm = form as typeof form & {
-		/** API for the IDB Form. */
-		idb: IDBFormApi
-	};
+	const newForm = form as NewForm;
 	newForm.idb = idbApi;
 
 	return newForm;
@@ -415,11 +423,25 @@ export function useIDBForm2<
 // 	newTestString: string
 // };
 
-// interface IDBFieldMeta<T = any> {
+export interface IDBFieldMeta<T = any> {
+	/** Whether the field has been synced with the database. Only for debounced fields, which don't update immediately */
+	synced: boolean
+	/** Data for the relation picker */
+	data: T extends any[] ? T : T[]
+}
+
+// export interface IDBFieldMeta<T = any> {
 // 	/** This is a custom function that is used to update the field value */
 // 	handleChange: (value: T) => void
 // 	/** Whether the field has been synced with the database. Only for debounced fields, which don't update immediately */
 // 	synced: boolean
 // 	/** Data for the relation picker */
 // 	data: T extends any[] ? T : T[]
+// }
+
+// declare module '@tanstack/react-form' {
+// 	interface FieldApi {
+// 		/** Metadata specific to InstantDB */
+// 		idb: IDBFieldMeta<this['state']['value']>
+// 	}
 // }
