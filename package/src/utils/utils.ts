@@ -66,6 +66,7 @@ export const getEntityFields = <
 		{} as { [P in keyof TSchema['entities'][TEntity]['attrs']]: P },
 	);
 };
+// Example usage - const itemFields = getEntityFields(schema, 'items');
 
 /** This hook will automatically re-render your parent component when the IDBForm state changes */
 export const useIDBFormState = () => {

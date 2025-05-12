@@ -1,9 +1,6 @@
-import { Divider } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 
 import { DetailHeader } from '~client/lib/detail-header';
-import { entityNames } from '~client/main';
-import ItemForm from '~client/routes/items/-form';
 import ItemForm2 from '~client/routes/items/-form2';
 
 export const Route = createFileRoute('/items/$id')({
@@ -19,8 +16,6 @@ function ItemDetail() {
 				<DetailHeader entity="items" id={params.id} route="/items" />
 				<ItemForm2 type="update" />
 			</div>
-
-			{/* <ItemsDetailCode /> */}
 		</div>
 	);
 }

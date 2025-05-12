@@ -35,7 +35,7 @@ function RoomForm({ onValidSubmit, type }: ReusableFormComponentProps2) {
 			},
 			onSubmit: async () => {
 				const id = await handleIdbCreate(); // create entity
-				navigate({ to: '/people/$id', params: { id }, search: { search: '' } }); // nav to new room
+				navigate({ to: '/rooms/$id', params: { id }, search: { search: '' } }); // nav to new room
 				onValidSubmit?.(); // close modal
 			},
 		}),

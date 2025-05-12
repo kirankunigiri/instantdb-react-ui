@@ -13,10 +13,12 @@ import { useRouteId } from '~client/lib/utils';
 import { ExtractFieldType, ExtractFormDataType, ExtractFormType, getErrorMessageForField } from '~instantdb-react-ui/index';
 import { useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
 
-const getItemQuery = (id: string) => ({ items: {
-	room: {},
-	owner: { room: {} }, $: { where: { id } },
-} } satisfies InstaQLParams<AppSchema>);
+const getItemQuery = (id: string) => ({
+	items: {
+		room: {},
+		owner: { room: {} }, $: { where: { id } },
+	},
+} satisfies InstaQLParams<AppSchema>);
 
 function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 	const id = useRouteId();

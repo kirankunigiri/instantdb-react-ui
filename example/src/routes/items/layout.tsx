@@ -1,4 +1,4 @@
-import { InstaQLEntity, InstaQLParams } from '@instantdb/react';
+import { InstaQLParams } from '@instantdb/react';
 import { Space, TextInput } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 
@@ -6,9 +6,7 @@ import schema, { AppSchema } from '~client/db/instant.schema';
 import List from '~client/lib/list/list';
 import { ListHeader } from '~client/lib/list/list-header';
 import { OutletWrapper } from '~client/lib/outlet-wrapper';
-import { getIdbSearchQuery, getIdbSearchQueryForField, validateSearch } from '~client/lib/utils';
-import { db, entityNames } from '~client/main';
-import ItemForm from '~client/routes/items/-form';
+import { getIdbSearchQueryForField, validateSearch } from '~client/lib/utils';
 import ItemForm2 from '~client/routes/items/-form2';
 
 export const Route = createFileRoute('/items')({

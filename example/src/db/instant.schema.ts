@@ -51,8 +51,10 @@ const _schema = i.schema({
 				z.number().max(new Date().setHours(23, 59, 59, 999)).default(Date.now)),
 		}),
 		rooms: i.entity({
-			name: i.string().indexed(),
-			description: i.string(),
+			name: addZod(i.string().indexed(),
+				z.string().min(1, { message: 'Please enter a name' })),
+			description: addZod(i.string(),
+				z.string().min(1, { message: 'Please enter a description' })),
 			testDefaultValue: i.string(),
 		}),
 	},
