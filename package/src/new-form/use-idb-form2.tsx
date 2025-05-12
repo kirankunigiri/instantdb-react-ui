@@ -47,7 +47,7 @@ interface IDBFormApi {
 	/** Updates the database with the current form values */
 	handleIdbUpdate: () => void
 	/** Creates a new entity in the database with the current form values */
-	handleIdbCreate: () => void
+	handleIdbCreate: () => Promise<void>
 	/** Zod schema for the form entity */
 	zodSchema: z.ZodObject<any>
 }

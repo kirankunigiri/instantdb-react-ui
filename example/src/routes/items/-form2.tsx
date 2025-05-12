@@ -1,5 +1,5 @@
-import { InstaQLParams } from '@instantdb/react';
-import { Button, Checkbox, Divider, MultiSelect, NumberInput, TextInput } from '@mantine/core';
+import { InstantUnknownSchema, InstaQLParams } from '@instantdb/react';
+import { Button, Checkbox, Divider, MultiSelect, NumberInput, Space, TextInput } from '@mantine/core';
 import { FieldApi, FormApi, useForm, useStore } from '@tanstack/react-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -18,7 +18,7 @@ type FormData = ExtractFormData<AppSchema, ReturnType<typeof getItemQuery>, 'ite
 function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 	const id = useRouteId();
 
-	const { zodSchema, defaults } = createIdbEntityZodSchema(schema, 'items');
+	// const { zodSchema, defaults } = createIdbEntityZodSchema(schema, 'items');
 
 	const itemForm = useIDBForm2({
 		idbOptions: {
@@ -49,7 +49,6 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 				onChange: ({ formApi, fieldApi }) => {
 					if (type !== 'update') return;
 					formApi.validate('change');
-					console.log('onchange listener triggered', formApi.state.isFormValid);
 					if (formApi.state.isValid) handleIdbUpdate();
 					// fieldApi represents the field that triggered the event.
 					// console.log(fieldApi.name, fieldApi.state.value);
@@ -57,11 +56,12 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 			},
 			onSubmit: async ({ value }) => {
 				try {
-					handleIdbCreate();
-					onValidSubmit?.();
-				} catch (error) {
-					console.error(error);
-					toast.error('Error submitting form');
+					await handleIdbCreate(); // create entity
+					onValidSubmit?.(); // close modal
+				} catch (error: unknown) {
+					let message = 'Error submitting form';
+					if (error instanceof Error && error.message) message += `: ${error.message}`;
+					toast.error(message);
 				}
 			},
 		}),
@@ -69,7 +69,6 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 
 	return (
 		<div className="flex flex-col gap-1">
-			<p className="text-lg font-bold">Item Form</p>
 			<itemForm.Field
 				name="name"
 				children={field => (
@@ -90,6 +89,7 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 						label="Shareable"
 						checked={field.state.value}
 						onChange={e => field.handleChange(e.target.checked)}
+						my="xs"
 					/>
 				)}
 			/>
@@ -132,11 +132,14 @@ function ItemForm2({ onValidSubmit, type }: ReusableFormComponentProps2) {
 				<itemForm.Subscribe
 					selector={state => [state.canSubmit, state.isSubmitting, state.isPristine]}
 					children={([canSubmit, isSubmitting, isPristine]) => (
-						<div className="flex justify-end">
-							<Button disabled={!canSubmit || isPristine} onClick={() => itemForm.handleSubmit()} loading={isSubmitting}>
-								Submit
-							</Button>
-						</div>
+						<>
+							<Space h="xs" />
+							<div className="flex justify-end">
+								<Button disabled={!canSubmit || isPristine} onClick={() => itemForm.handleSubmit()} loading={isSubmitting}>
+									Submit
+								</Button>
+							</div>
+						</>
 					)}
 				/>
 			)}

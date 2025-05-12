@@ -25,8 +25,6 @@ export function ListHeader({
 		{ open: openCreateModal, close: closeCreateModal },
 	] = useDisclosure(false);
 
-	console.log('rendering list header');
-
 	// Use form state to update button disabled state
 	// const { formRef, formState, handleFormChange } = useIDBFormState();
 

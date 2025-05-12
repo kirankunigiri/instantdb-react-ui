@@ -24,8 +24,9 @@ export function DetailHeader(props: DetailHeaderProps) {
 	const handleDelete = async () => {
 		setLoading(true);
 		try {
-			await db.transact(db.tx[props.model as keyof AppSchema['entities']][props.id]!.delete());
+			console.log('navigating to ', props.route);
 			navigate({ to: props.route });
+			await db.transact(db.tx[props.model as keyof AppSchema['entities']][props.id]!.delete());
 		} finally {
 			setLoading(false);
 			closeDeleteModal();
