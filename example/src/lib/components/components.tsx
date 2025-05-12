@@ -1,6 +1,6 @@
-import { IDBFormType } from '~instantdb-react-ui/new-form/use-idb-form2';
+import { IDBFormType } from '~instantdb-react-ui/form/use-idb-form';
 
-export interface ReusableFormComponentProps2 {
+export interface ReusableFormComponentProps {
 	type: IDBFormType
 	onValidSubmit?: () => void
 }

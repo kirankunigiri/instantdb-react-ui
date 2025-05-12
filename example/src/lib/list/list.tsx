@@ -4,8 +4,8 @@ import { Link } from '@tanstack/react-router';
 
 import type { RouteFullPaths } from '~client/lib/sidebar';
 import type { SearchParams } from '~client/lib/utils';
+import { IDBEntityType, IDBQueryType, IDBSchemaType } from '~instantdb-react-ui/form/use-idb-form';
 import { IDBList, IDBListProps } from '~instantdb-react-ui/list/list';
-import { IDBEntityType, IDBQueryType, IDBSchemaType } from '~instantdb-react-ui/new-form/use-idb-form2';
 
 // Extend IDBListProps with our custom wrapper props
 type ListWrapperProps<

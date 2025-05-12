@@ -1,12 +1,12 @@
 import { CodeHighlight } from '@mantine/code-highlight';
-import { Divider, ScrollArea, Space, TextInput } from '@mantine/core';
+import { Divider, ScrollArea, TextInput } from '@mantine/core';
 import { useForm } from '@tanstack/react-form';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
 import schema from '~client/db/instant.schema';
 import { db } from '~client/main';
-import { useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
+import { useIDBForm2 } from '~instantdb-react-ui/form/use-idb-form';
 
 export const Route = createFileRoute('/compare')({
 	component: RouteComponent,

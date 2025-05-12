@@ -2,7 +2,7 @@ import { ActionIcon, Modal } from '@mantine/core';
 import { useDisclosure, useHotkeys } from '@mantine/hooks';
 import { LuPlus } from 'react-icons/lu';
 
-import { ReusableFormComponentProps2 } from '~client/lib/components/components';
+import { ReusableFormComponentProps } from '~client/lib/components/components';
 
 export function ListHeader({
 	title,
@@ -11,7 +11,7 @@ export function ListHeader({
 }: {
 	title: string
 	createTitle: string
-	modalContent: React.ComponentType<ReusableFormComponentProps2>
+	modalContent: React.ComponentType<ReusableFormComponentProps>
 }) {
 	useHotkeys([
 		['meta+m', () => openCreateModal()],

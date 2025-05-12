@@ -3,19 +3,16 @@ import { Space, TextInput } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
 
 import schema, { AppSchema } from '~client/db/instant.schema';
-import { ReusableFormComponentProps2 } from '~client/lib/components/components';
+import { ReusableFormComponentProps } from '~client/lib/components/components';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
 import SubmitButton from '~client/lib/components/submit';
 import { useRouteId } from '~client/lib/utils';
+import { useIDBForm2 } from '~instantdb-react-ui/form/use-idb-form';
 import { getEntityFields, getErrorMessageForField } from '~instantdb-react-ui/index';
-import { useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
-
-type Room = InstaQLEntity<typeof schema, 'rooms'>;
-const personFields = getEntityFields(schema, 'persons');
 
 const getPersonQuery = (id: string) => ({ persons: { $: { where: { id } }, room: {} } } satisfies InstaQLParams<AppSchema>);
 
-function PersonForm({ onValidSubmit, type }: ReusableFormComponentProps2) {
+function PersonForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 	const id = useRouteId();
 	const navigate = useNavigate();
 

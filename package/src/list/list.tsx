@@ -3,7 +3,7 @@
 import { EntitiesDef, InstantSchemaDef, InstaQLParams, InstaQLResult, LinksDef } from '@instantdb/react';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 
-import { ExtractIDBEntityType, IDBEntityType, IDBQueryType, IDBSchemaType, InstantValue } from '../new-form/use-idb-form2';
+import { ExtractIDBEntityType, IDBEntityType, IDBQueryType, IDBSchemaType, InstantValue } from '../form/use-idb-form';
 import { useIDBReactUIProvider } from '../utils/provider';
 
 interface BaseListProps<

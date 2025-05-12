@@ -6,12 +6,12 @@ import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 
 import schema, { AppSchema, ITEM_CATEGORY } from '~client/db/instant.schema';
-import { ReusableFormComponentProps2 } from '~client/lib/components/components';
+import { ReusableFormComponentProps } from '~client/lib/components/components';
 import { SearchableSelect } from '~client/lib/components/searchable-select';
 import SubmitButton from '~client/lib/components/submit';
 import { useRouteId } from '~client/lib/utils';
+import { ExtractFormDataType, useIDBForm2 } from '~instantdb-react-ui/form/use-idb-form';
 import { getErrorMessageForField, IDBExtractFieldType, IDBExtractFormType } from '~instantdb-react-ui/index';
-import { ExtractFormDataType, useIDBForm2 } from '~instantdb-react-ui/new-form/use-idb-form2';
 
 const getItemQuery = (id: string) => ({
 	items: {
@@ -20,7 +20,7 @@ const getItemQuery = (id: string) => ({
 	},
 } satisfies InstaQLParams<AppSchema>);
 
-function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps2) {
+function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 	const id = useRouteId();
 	const navigate = useNavigate();
 

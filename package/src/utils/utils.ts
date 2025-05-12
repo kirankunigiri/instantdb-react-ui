@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DataAttrDef, LinkAttrDef } from '@instantdb/react';
 import { DeepKeys, DeepValue, FieldApi, FormApi } from '@tanstack/react-form';
-import { useCallback, useRef, useState } from 'react';
 import { z, ZodError, ZodTypeAny } from 'zod';
 
-import { IDBFormState } from '../form/form';
-import { IDBFieldMeta } from '../new-form/use-idb-form2';
+import { IDBFieldMeta } from '../form/use-idb-form';
 
 interface IdbZodSchema {
 	/** The zod schema for the attribute */

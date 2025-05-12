@@ -2,7 +2,7 @@
 import { AttrsDefs, EntitiesDef, EntityDef, LinkAttrDef, ValueTypes } from '@instantdb/react';
 import { z } from 'zod';
 
-import { IDBSchema } from '../new-form/use-idb-form2';
+import { IDBSchema } from '../form/use-idb-form';
 import { generateZodEntitySchema, IdbZodAttr, IdbZodLink } from '../utils/utils';
 
 /**
