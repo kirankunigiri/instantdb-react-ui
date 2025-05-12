@@ -4,9 +4,9 @@
 
 		// Client task
 		{
-			"label": "dev:client",
+			"label": "dev",
 			"type": "shell",
-			"command": "bun run dev:client",
+			"command": "bun run dev",
 			"presentation": {
 				"showReuseMessage": false,
 				"clear": true

@@ -6,16 +6,17 @@
 		"package"
 	],
 	"scripts": {
-		"dev": "bun --filter '*' dev",
-		"deploy": "bun --filter '*' deploy",
-		"dev:client": "cd example && bun dev",
-		"deploy:client": "bun --filter 'example' deploy",
+		"dev": "cd example && bun dev",
+		"deploy": "cd example && bun deploy",
+		"db:push": "bunx instant-cli@latest push schema",
+		"sync-env": "doppler -p instantdb-react-ui -c dev secrets download --no-file --format env > .env",
 		"reset-node": "rm -rf node_modules && rm -rf example/node_modules && rm -rf package/node_modules && bun i",
 		"lint": "eslint . --ext .js,.jsx,.ts,.tsx"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.6",
 		"@eslint/js": "^9.20.0",
+		"@instantdb/react": "^0.19.6",
 		"@stylistic/eslint-plugin": "^3.1.0",
 		"@types/eslint__js": "^8.42.3",
 		"dotenv-cli": "^8.0.0",
