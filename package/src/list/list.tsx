@@ -11,7 +11,7 @@ interface BaseListProps<
 	TQuery extends IDBQueryType<TSchema>,
 > {
 	schema: TSchema
-	db: InstantReactWebDatabase<TSchema>
+	db: InstantReactWebDatabase<any>
 	entity: TEntity
 	query?: TQuery
 	render: (item: ExtractIDBEntityType<TSchema, TEntity, TQuery>, id: string) => ReactNode

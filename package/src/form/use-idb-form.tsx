@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { EntitiesDef, LinksDef, TransactionChunk } from '@instantdb/core';
-import { id, InstantReactWebDatabase, InstantSchemaDef, InstaQLParams, InstaQLResult, LinkAttrDef } from '@instantdb/react';
+import { DataAttrDef, LinkAttrDef, TransactionChunk } from '@instantdb/core';
+import { EntitiesDef, id, InstantReactWebDatabase, InstaQLParams, InstaQLResult, LinksDef } from '@instantdb/react';
 import { DeepValue, FieldApi, FormOptions, useForm } from '@tanstack/react-form';
 import { useCallback, useEffect, useRef } from 'react';
 import { z } from 'zod';
@@ -12,7 +12,7 @@ export type EntityLinks = Record<string, LinkAttrDef<any, any>>;
 /** The type of form to be used. Either update or create */
 export type IDBFormType = 'update' | 'create';
 
-/** The schema of an InstantDB database */
+/** The schema of an InstantDB database. Using InstantSchemaDef causes major typescript inference lag, so we use this simplified version instead. */
 export interface IDBSchema<
 	Entities extends EntitiesDef,
 	Links extends LinksDef<Entities>,
@@ -21,11 +21,7 @@ export interface IDBSchema<
 	links: Links
 }
 
-// Update to use InstantSchemaDef
 export type IDBSchemaType = IDBSchema<EntitiesDef, any>;
-// export type IDBSchemaType = InstantSchemaDef<EntitiesDef, LinksDef<EntitiesDef>, any>;
-
-// These types remain the same but now reference InstantSchemaDef under the hood
 export type IDBEntityType<T extends IDBSchemaType> = keyof T['entities'];
 export type IDBQueryType<T extends IDBSchemaType> = InstaQLParams<T>;
 
@@ -65,33 +61,32 @@ export const isDifferent = (a: any, b: any) => {
 	return JSON.stringify(a) !== JSON.stringify(b);
 };
 
-type SimpleFormOptions<TValues> = Omit<FormOptions<TValues, any, any, any, any, any, any, any, any, any>, 'defaultValues'>;
-
 /** An InstantDB wrapper for Tanstack Form. Gain type-safety and automatic database syncing. */
 export function useIDBForm<
-	TSchema extends IDBSchemaType,
+	TSchema extends IDBSchema<EntitiesDef, any>,
 	TEntity extends keyof TSchema['entities'],
 	TQuery extends InstaQLParams<TSchema>,
-	TLinkQueries extends Partial<Record<keyof TSchema['entities'][TEntity]['links'], TQuery>>,
 >(
 	options: {
 		idbOptions: {
 			type: IDBFormType
 			schema: TSchema
-			// db: InstantReactWebDatabase<TSchema>
-			entity: TEntity // Note: using TEntity causes extreme lag in type inference
-			query: InstaQLParams<TSchema>
-			// linkPickerQueries?: keyof TSchema['entities'][TEntity]['links']
-			// defaultValues?: Partial<ExtractIDBEntityType<TSchema, TEntity, TQuery>>
-			// serverDebounceFields?: Partial<Record<keyof ExtractIDBEntityType<TSchema, TEntity, TQuery>, number>>
-			// serverThrottleFields?: Partial<Record<keyof ExtractIDBEntityType<TSchema, TEntity, TQuery>, number>>
+			entity: TEntity
+			query: TQuery
+			db: InstantReactWebDatabase<any>
+			linkPickerQueries?: Partial<Record<keyof TSchema['entities'][TEntity]['links'], InstaQLParams<TSchema>>>
+			defaultValues?: Partial<{
+				[K in keyof TSchema['entities'][TEntity]['attrs']]: TSchema['entities'][TEntity]['attrs'][K] extends DataAttrDef<infer T, any> ? T : never
+			}>
+			serverDebounceFields?: Partial<Record<keyof ExtractIDBEntityType<TSchema, TEntity, TQuery>, number>>
+			serverThrottleFields?: Partial<Record<keyof ExtractIDBEntityType<TSchema, TEntity, TQuery>, number>>
+			// serverDebounceFields?: Partial<Record<keyof TSchema['entities'][TEntity]['attrs'], number>>
+			// serverThrottleFields?: Partial<Record<keyof TSchema['entities'][TEntity]['attrs'], number>>
 		}
-		tanstackOptions: (idbApi: IDBFormApi) => SimpleFormOptions<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never>
-		// tanstackOptions: (idbApi: IDBFormApi) => Omit<FormOptions<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never, any, any, any, any, any, any, any, any, any>, 'defaultValues'>
+		tanstackOptions: (idbApi: IDBFormApi) => Omit<FormOptions<ExtractIDBEntityType<TSchema, TEntity, TQuery>, any, any, any, any, any, any, any, any, any>, 'defaultValues'>
 	},
 ) {
 	type FormData = ExtractIDBEntityType<TSchema, TEntity, TQuery>;
-	type MyFormOptions = FormOptions<FormData, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>;
 
 	// Refs for managing timers and state
 	const timerRef = useRef<NodeJS.Timeout>(null);
@@ -234,6 +229,8 @@ export function useIDBForm<
 	const entityName = idbOptions.entity as string;
 	const queryValueRef = useRef<any>(null);
 
+	// const { db } = useNewReactContext();
+
 	// Extract link names from the query
 	const queryLinkNames = Object.keys(idbOptions.query[entityName] || {}).filter(key => key !== '$');
 	// Get only the links that are in the query. We don't want to add all links to our form and subscriptions
@@ -288,8 +285,9 @@ export function useIDBForm<
 							console.log(`Received Update for ${fieldName}: ${JSON.stringify(newValue)}`);
 							form.setFieldValue(fieldName, newValue);
 						}
-						if (!(form.getFieldMeta(fieldName))?.synced) {
-							form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, synced: true }));
+
+						if (!(form.getFieldMeta(fieldName) as any)?.[idbSyncedMetaName]) {
+							form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, [idbSyncedMetaName]: true }));
 						}
 					}
 
@@ -308,7 +306,7 @@ export function useIDBForm<
 
 			const unsubscribe = db._core.subscribeQuery(linkPickerQuery, (resp) => {
 				const linkPickerData = resp.data?.[link.entityName] as any[];
-				form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, data: linkPickerData }));
+				form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, [idbLinkDataMetaName]: linkPickerData }));
 			});
 			unsubscribers.push(unsubscribe);
 		}
@@ -325,7 +323,7 @@ export function useIDBForm<
 		const oldValue = queryValueRef.current![fieldName];
 		const newValue = form.getFieldValue(fieldName);
 		const needsUpdate = isDifferent(oldValue, newValue);
-		if (needsUpdate) form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, synced: false }));
+		if (needsUpdate) form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, [idbSyncedMetaName]: false }));
 		return needsUpdate;
 	};
 
@@ -343,10 +341,7 @@ export function useIDBForm<
 			return transactions;
 		}
 
-		// console.log(`Server Update: ${fieldName} from ${oldValue} to ${newValue}`);
 		console.log(`Server Update: ${fieldName} from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)}`);
-
-		// form.setFieldMeta(fieldName, prevMeta => ({ ...prevMeta, synced: false }));
 		const id = form.getFieldValue('id') as string;
 
 		const link = links[fieldName];
@@ -386,30 +381,6 @@ export function useIDBForm<
 
 	// --------------------------------------------------------------------------------
 	// Wrap field component
-	// TODO: instead of creating a new field, just replace the type and use field.state.meta.idbLinkData
-	// const OriginalField = form.Field;
-	// const WrappedField = <TName extends keyof FormData & string>(props: {
-	// 	children: (field: FieldApi<FormData, TName, DeepValue<FormData, TName>, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined> & {
-	// 		idb: IDBFieldMeta<DeepValue<FormData, TName>>
-	// 	}) => React.ReactNode
-	// 	name: TName
-	// 	[key: string]: any
-	// }) => {
-	// 	return (
-	// 		<OriginalField
-	// 			{...props}
-	// 			children={(field: FieldApi<FormData, TName, DeepValue<FormData, TName>, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>) => {
-	// 				// @ts-expect-error - custom metadata
-	// 				field.idb = field.state.meta;
-	// 				return props.children(field as any);
-	// 			}}
-	// 		/>
-	// 	);
-	// };
-	// WrappedField.displayName = 'WrappedField';
-	// form.Field = WrappedField as any;
-
-	// Then modify the form type to use our IDBFieldApi
 	type IDBForm = Omit<typeof form, 'Field'> & {
 		/** API for the IDB Form. */
 		idb: IDBFormApi
@@ -420,17 +391,10 @@ export function useIDBForm<
 		}) => React.ReactNode
 	};
 
-	// type NewForm = Omit<typeof form, 'Field'> & {
-	// 	/** API for the IDB Form. */
-	// 	idb: IDBFormApi
-	// 	Field: typeof WrappedField
-	// };
-	// const newForm = form as NewForm;
-	// const newForm = form as IDBForm;
-	// newForm.idb = idbApi;
+	const newForm = form as IDBForm;
+	newForm.idb = idbApi;
 
-	// return newForm;
-	return form;
+	return newForm;
 }
 
 type IDBFieldApi<
@@ -443,29 +407,12 @@ type IDBFieldApi<
 	}
 };
 
-// type ExtendedForm<TFormData> = ReturnType<typeof useForm<TFormData, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>> & {
-// 	newTestString: string
-// };
+const idbSyncedMetaName = 'idbSynced';
+const idbLinkDataMetaName = 'idbLinkData';
 
 export interface IDBFieldMeta<T = any> {
 	/** Whether the field has been synced with the database. Only for debounced fields, which don't update immediately */
-	idbSynced: boolean
+	[idbSyncedMetaName]: boolean
 	/** Data for the relation picker */
-	idbLinkData: T extends any[] ? T : T[]
+	[idbLinkDataMetaName]: T extends any[] ? T : T[]
 }
-
-// export interface IDBFieldMeta<T = any> {
-// 	/** This is a custom function that is used to update the field value */
-// 	handleChange: (value: T) => void
-// 	/** Whether the field has been synced with the database. Only for debounced fields, which don't update immediately */
-// 	synced: boolean
-// 	/** Data for the relation picker */
-// 	data: T extends any[] ? T : T[]
-// }
-
-// declare module '@tanstack/react-form' {
-// 	interface FieldApi {
-// 		/** Metadata specific to InstantDB */
-// 		idb: IDBFieldMeta<this['state']['value']>
-// 	}
-// }

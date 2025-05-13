@@ -21,13 +21,6 @@ const getItemQuery = (id: string) => ({
 	},
 } satisfies InstaQLParams<AppSchema>);
 
-const testQuery = {
-	items: {
-		room: {},
-		owner: { room: {} }, $: { where: { id: '123' } },
-	},
-} satisfies InstaQLParams<AppSchema>;
-
 function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 	const id = useRouteId();
 	const navigate = useNavigate();
@@ -39,42 +32,44 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 		idbOptions: {
 			type: type,
 			schema: schema,
-			// db: db,
+			db: db,
 			entity: 'items',
-			// query: getItemQuery(id),
-			query: {
-				items: {
-					room: {},
-					owner: { room: {} }, $: { where: { id } },
+
+			query: getItemQuery(id),
+			// You can also write your query directly here
+			// query: {
+			// 	items: {
+			// 		room: {},
+			// 		owner: { room: {} }, $: { where: { id } },
+			// 	},
+			// } satisfies InstaQLParams<AppSchema>,
+
+			// Optional. Prioritizes custom overrides (here) -> zod defaults -> instant defaults
+			defaultValues: {
+				name: '',
+				shareable: true,
+				category: ITEM_CATEGORY.Other,
+			},
+			serverDebounceFields: {
+				name: 500,
+			},
+			// Optional: Define queries for relation fields
+			linkPickerQueries: {
+				// Owner picker - get list of all people and their rooms (to filter by room later)
+				owner: {
+					persons: {
+						room: {},
+						$: { order: { name: 'asc' } },
+					},
+				},
+				// Room picker - get list of all rooms
+				room: {
+					rooms: {
+						items: {},
+						$: { order: { name: 'asc' } },
+					},
 				},
 			},
-			// Optional. Prioritizes custom overrides (here) -> zod defaults -> instant defaults
-			// defaultValues: {
-			// 	name: '',
-			// 	shareable: true,
-			// 	category: ITEM_CATEGORY.Other,
-			// },
-			// serverDebounceFields: {
-			// 	name: 500,
-			// },
-			// Optional: Define queries for relation fields
-			linkPickerQueries: 'owner',
-			// linkPickerQueries: {
-			// 	// Owner picker - get list of all people and their rooms (to filter by room later)
-			// 	owner: {
-			// 		persons: {
-			// 			room: {},
-			// 			$: { order: { name: 'asc' } },
-			// 		},
-			// 	},
-			// 	// Room picker - get list of all rooms
-			// 	room: {
-			// 		rooms: {
-			// 			items: {},
-			// 			$: { order: { name: 'asc' } },
-			// 		},
-			// 	},
-			// },
 		},
 		tanstackOptions: ({ handleIdbUpdate, handleIdbCreate, zodSchema }) => ({
 			validators: { onChange: zodSchema },

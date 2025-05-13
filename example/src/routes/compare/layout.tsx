@@ -57,7 +57,7 @@ function InstantDBReactUIForm() {
 		idbOptions: {
 			type: 'update',
 			schema: schema,
-			// db: db,
+			db: db,
 			entity: 'items',
 			query: { items: { $: { limit: 1 } } },
 		},

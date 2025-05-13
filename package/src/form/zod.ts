@@ -3,6 +3,7 @@ import { AttrsDefs, EntitiesDef, EntityDef, InstantSchemaDef, LinkAttrDef, Value
 import { z } from 'zod';
 
 import { generateZodEntitySchema, IdbZodAttr, IdbZodLink } from '../utils/utils';
+import { IDBSchema } from './use-idb-form';
 
 /**
  * Maps InstantDB types to Zod types.
@@ -47,7 +48,7 @@ function getDefaultValueByType(valueType: string): any {
 type BasicEntity = EntityDef<AttrsDefs, Record<string, LinkAttrDef<any, any>>, void>;
 
 export function createIdbEntityZodSchema<
-	TSchema extends InstantSchemaDef<EntitiesDef, any, any>,
+	TSchema extends IDBSchema<EntitiesDef, any>,
 	TEntity extends keyof TSchema['entities'],
 >(
 	schema: TSchema,
