@@ -1,3 +1,5 @@
+# Reference - https://snyk.io/blog/best-practices-create-modern-npm-package/
+# Uses bun to setup the project, calls tsc to build, and publishes to npm
 name: Build and Publish
 
 on:

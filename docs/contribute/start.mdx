@@ -5,25 +5,25 @@ icon: "rocket"
 ---
 
 ### Forms
-`package/form/form.tsx`
-1. Use `createEntityZodSchema` to create a zod schema from the entity and create intiial empty values
-2. Use `use-form` hook to create a form with the zod schema resolver and initial values
+`package/form/use-idb-form.tsx`, `package/form/zod.ts`
+1. Use `createEntityZodSchema` to create a zod schema from the entity and get default values
+2. Use TanStack Form's `useForm` hook to create a form with the zod schema validator and initial values
 3. Get relation field picker data for relation fields
-4. Run `processChildren` to recursively replace `IDBField` components. These components are cloned, and the form values are passed in so IDBForm has control over their state.
-5. For update fields, form state is tracked. We check which fields are dirty (have been edited) and valid, and only run updates for those fields.
+4. Subscribe to database changes and update form values
+5. Return the form with custom modified types
 
 
-#### Mantine Form library
-Form state is managed using the `@mantine/form` library with the `use-form` hook.
+#### TanStack Form library
+Form state is managed using the `@tanstack/react-form` library with the `useForm` hook.
 
 <Card
-  color="#339AF0"
+  color="#E7B10A"
   horizontal
-  title="Mantine Form Docs"
+  title="TanStack Form Docs"
   icon="book-open-cover"
-  href="https://mantine.dev/form/use-form/"
+  href="https://tanstack.com/form/latest/docs/overview"
 >
-  Read the reference for the use-form hook
+  Read the reference for the useForm hook
 </Card>
 
 ### Lists

@@ -5,7 +5,7 @@ import { DeepValue, FieldApi, FormOptions, useForm } from '@tanstack/react-form'
 import { useCallback, useEffect, useRef } from 'react';
 import { z } from 'zod';
 
-import { createEntityZodSchemaV3 } from '../form/zod';
+import { internalCreateIDBEntityZodSchema } from '../form/zod';
 
 export type EntityLinks = Record<string, LinkAttrDef<any, any>>;
 
@@ -241,7 +241,7 @@ export function useIDBForm<
 	);
 
 	// Use the extracted function to create schema and get defaults
-	const { zodSchema, defaults: zodDefaults } = createEntityZodSchemaV3(entity, links);
+	const { zodSchema, defaults: zodDefaults } = internalCreateIDBEntityZodSchema(entity, links);
 
 	// Merge default values from options with zod/instant defaults
 	for (const [fieldName, fieldValue] of Object.entries(idbOptions.defaultValues || {})) {

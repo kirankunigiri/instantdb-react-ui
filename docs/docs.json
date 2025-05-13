@@ -29,6 +29,7 @@
 						"group": "Contributing",
 						"pages": [
 							"contribute/start",
+							"contribute/goals",
 							"contribute/notes"
 						]
 					}
@@ -39,7 +40,7 @@
 			"anchors": [
 				{
 					"anchor": "Demo Site",
-					"href": "https://instantdb-react-ui.kirankunigiri.com",
+					"href": "https://instantdb-react-ui-demo.kirankunigiri.com/compare",
 					"icon": "globe"
 				},
 				{
