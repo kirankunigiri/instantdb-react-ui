@@ -32,6 +32,9 @@
 		"typescript-eslint": "^8.24.0"
 	},
 	"trustedDependencies": [
-		"@swc/core"
+		"@swc/core",
+		"esbuild",
+		"sharp",
+		"workerd"
 	]
 }

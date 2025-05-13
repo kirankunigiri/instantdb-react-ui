@@ -15,7 +15,7 @@
 	},
 	"files": ["dist"],
 	"scripts": {
-		"build": "tsup src/index.ts --format cjs,esm --dts",
+		"build": "tsc -p ./tsconfig.json",
 		"release": "bun run build && npm publish",
 		"lint": "tsc"
 	},
@@ -37,7 +37,8 @@
 	},
 	"devDependencies": {
 		"@types/react": "^19.0.8",
-		"tsup": "^8.3.6",
+		"tshy": "^3.0.2",
+		"tsup": "^8.4.0",
 		"typescript": "^5.7.3"
 	}
 }

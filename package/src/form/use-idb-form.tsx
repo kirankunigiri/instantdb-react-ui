@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { DataAttrDef, LinkAttrDef, TransactionChunk } from '@instantdb/core';
-import { EntitiesDef, id, InstantReactWebDatabase, InstaQLParams, InstaQLResult, LinksDef } from '@instantdb/react';
+import { TransactionChunk } from '@instantdb/core';
+import { DataAttrDef, EntitiesDef, id, InstantReactWebDatabase, InstaQLParams, InstaQLResult, LinkAttrDef, LinksDef } from '@instantdb/react';
 import { DeepValue, FieldApi, FormOptions, useForm } from '@tanstack/react-form';
 import { useCallback, useEffect, useRef } from 'react';
 import { z } from 'zod';
