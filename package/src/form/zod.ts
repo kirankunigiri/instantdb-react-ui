@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AttrsDefs, EntitiesDef, EntityDef, LinkAttrDef, ValueTypes } from '@instantdb/react';
+import { AttrsDefs, DataAttrDef, EntitiesDef, EntityDef, LinkAttrDef, ValueTypes } from '@instantdb/react';
 import { z } from 'zod';
 
 import { generateZodEntitySchema, IDBZodAttr, IDBZodLink } from '../utils/utils';
@@ -7,23 +7,32 @@ import { IDBSchema } from './use-idb-form';
 
 /**
  * Maps InstantDB types to Zod types.
- * Used when a instant field does not have a zod validator.
+ * Used when a instant field does not have a zod validator. Handles required/optional fields.
  */
-function getDefaultSchema(valueType: ValueTypes): z.ZodType {
-	switch (valueType) {
+function getDefaultSchema(attr: DataAttrDef<any, any>): z.ZodType {
+	let baseSchema: z.ZodType;
+
+	switch (attr.valueType) {
 		case 'string':
-			return z.string();
+			baseSchema = z.string();
+			break;
 		case 'number':
-			return z.number();
+			baseSchema = z.number();
+			break;
 		case 'boolean':
-			return z.boolean();
+			baseSchema = z.boolean();
+			break;
 		case 'date':
-			return z.number(); // instantdb uses number for dates
+			baseSchema = z.number(); // instantdb uses number for dates
+			break;
 		case 'json':
-			return z.any();
+			baseSchema = z.any();
+			break;
 		default:
-			return z.string();
+			baseSchema = z.string();
 	}
+
+	return attr.required ? baseSchema : baseSchema.optional();
 }
 
 /** The default value map used by getDefaultValueByType */
@@ -79,11 +88,11 @@ export function createIDBEntityZodSchema<
 					defaults[key] = getDefaultValueByType(attr.valueType);
 				}
 			} catch (e) {
-				fieldSchema = getDefaultSchema(attr.valueType);
+				fieldSchema = getDefaultSchema(attr);
 				defaults[key] = getDefaultValueByType(attr.valueType);
 			}
 		} else {
-			fieldSchema = getDefaultSchema(attr.valueType);
+			fieldSchema = getDefaultSchema(attr);
 			defaults[key] = getDefaultValueByType(attr.valueType);
 		}
 
