@@ -11,7 +11,7 @@ import { SearchableSelect } from '~client/lib/components/searchable-select';
 import SubmitButton from '~client/lib/components/submit';
 import { useRouteId } from '~client/lib/utils';
 import { db } from '~client/main';
-import { ExtractFormDataType, useIDBForm2 } from '~instantdb-react-ui/form/use-idb-form';
+import { ExtractFormDataType, useIDBForm } from '~instantdb-react-ui/form/use-idb-form';
 import { getErrorMessageForField, IDBExtractFieldType, IDBExtractFormType } from '~instantdb-react-ui/index';
 
 const getItemQuery = (id: string) => ({
@@ -21,6 +21,13 @@ const getItemQuery = (id: string) => ({
 	},
 } satisfies InstaQLParams<AppSchema>);
 
+const testQuery = {
+	items: {
+		room: {},
+		owner: { room: {} }, $: { where: { id: '123' } },
+	},
+} satisfies InstaQLParams<AppSchema>;
+
 function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 	const id = useRouteId();
 	const navigate = useNavigate();
@@ -28,29 +35,46 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 	// Example of how to create a zod schema for the item form in case you need it outside of useIDBForm
 	// const { zodSchema, defaults } = createIdbEntityZodSchema(schema, 'items');
 
-	const itemForm = useIDBForm2({
+	const itemForm = useIDBForm({
 		idbOptions: {
 			type: type,
 			schema: schema,
-			db: db,
+			// db: db,
 			entity: 'items',
-			query: getItemQuery(id),
+			// query: getItemQuery(id),
+			query: {
+				items: {
+					room: {},
+					owner: { room: {} }, $: { where: { id } },
+				},
+			},
 			// Optional. Prioritizes custom overrides (here) -> zod defaults -> instant defaults
-			defaultValues: {
-				name: '',
-				shareable: true,
-				category: ITEM_CATEGORY.Other,
-			},
-			serverDebounceFields: {
-				name: 500,
-			},
+			// defaultValues: {
+			// 	name: '',
+			// 	shareable: true,
+			// 	category: ITEM_CATEGORY.Other,
+			// },
+			// serverDebounceFields: {
+			// 	name: 500,
+			// },
 			// Optional: Define queries for relation fields
-			linkPickerQueries: {
-				// Owner picker - get list of all people and their rooms (to filter by room later)
-				owner: { persons: { room: {}, $: { order: { name: 'asc' } } } },
-				// Room picker - get list of all rooms
-				room: { rooms: { $: { order: { name: 'asc' } } } },
-			},
+			linkPickerQueries: 'owner',
+			// linkPickerQueries: {
+			// 	// Owner picker - get list of all people and their rooms (to filter by room later)
+			// 	owner: {
+			// 		persons: {
+			// 			room: {},
+			// 			$: { order: { name: 'asc' } },
+			// 		},
+			// 	},
+			// 	// Room picker - get list of all rooms
+			// 	room: {
+			// 		rooms: {
+			// 			items: {},
+			// 			$: { order: { name: 'asc' } },
+			// 		},
+			// 	},
+			// },
 		},
 		tanstackOptions: ({ handleIdbUpdate, handleIdbCreate, zodSchema }) => ({
 			validators: { onChange: zodSchema },
@@ -86,9 +110,9 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 				name="name"
 				children={field => (
 					<TextInput
-						className={`${type === 'update' && !field.idb.synced ? 'unsynced' : ''}`}
+						className={`${type === 'update' && !field.state.meta.idbSynced ? 'unsynced' : ''}`}
 						error={getErrorMessageForField(field)}
-						label={`Name ${type === 'update' ? (field.idb.synced ? '(Synced)' : '(Unsynced)') : ''}`}
+						label={`Name ${type === 'update' ? (field.state.meta.idbSynced ? '(Synced)' : '(Unsynced)') : ''}`}
 						value={field.state.value}
 						onChange={e => field.handleChange(e.target.value)}
 					/>
@@ -120,7 +144,7 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 			<itemForm.Field
 				name="room"
 				children={(field) => {
-					const linkData = field.idb.data || [];
+					const linkData = field.state.meta.idbLinkData || [];
 					return (
 						<SearchableSelect
 							label="Room"
@@ -166,7 +190,7 @@ function OwnerField({ field, form }: {
 	const room = useStore(form.store, state => state.values.room);
 	const disabled = !room;
 	const roomId = room ? room.id : '';
-	const linkData = field.idb.data || [];
+	const linkData = field.state.meta.idbLinkData || [];
 	const filteredLinkData = linkData.filter(person => person.room!.id === roomId);
 
 	return (

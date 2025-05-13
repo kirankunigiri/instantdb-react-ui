@@ -7,7 +7,7 @@ import { ReusableFormComponentProps } from '~client/lib/components/components';
 import SubmitButton from '~client/lib/components/submit';
 import { useRouteId } from '~client/lib/utils';
 import { db } from '~client/main';
-import { useIDBForm2 } from '~instantdb-react-ui/form/use-idb-form';
+import { useIDBForm } from '~instantdb-react-ui/form/use-idb-form';
 import { getErrorMessageForField } from '~instantdb-react-ui/index';
 
 const getRoomQuery = (id: string) => ({ rooms: { $: { where: { id } } } } satisfies InstaQLParams<AppSchema>);
@@ -16,7 +16,7 @@ function RoomForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 	const id = useRouteId();
 	const navigate = useNavigate();
 
-	const personForm = useIDBForm2({
+	const personForm = useIDBForm({
 		idbOptions: {
 			type: type,
 			schema: schema,
@@ -49,7 +49,7 @@ function RoomForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 				name="name"
 				children={field => (
 					<TextInput
-						className={`${type === 'update' && !field.idb.synced ? 'unsynced' : ''}`}
+						className={`${type === 'update' && !field.state.meta.idbSynced ? 'unsynced' : ''}`}
 						error={getErrorMessageForField(field)}
 						label="Name"
 						value={field.state.value}
@@ -62,7 +62,7 @@ function RoomForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 				name="description"
 				children={field => (
 					<Textarea
-						className={`${type === 'update' && !field.idb.synced ? 'unsynced' : ''}`}
+						className={`${type === 'update' && !field.state.meta.idbSynced ? 'unsynced' : ''}`}
 						error={getErrorMessageForField(field)}
 						label="Description"
 						value={field.state.value}

@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 
 import schema from '~client/db/instant.schema';
 import { db } from '~client/main';
-import { useIDBForm2 } from '~instantdb-react-ui/form/use-idb-form';
+import { useIDBForm } from '~instantdb-react-ui/form/use-idb-form';
 
 export const Route = createFileRoute('/compare')({
 	component: RouteComponent,
@@ -53,11 +53,11 @@ function RouteComponent() {
 }
 
 function InstantDBReactUIForm() {
-	const form = useIDBForm2({
+	const form = useIDBForm({
 		idbOptions: {
 			type: 'update',
 			schema: schema,
-			db: db,
+			// db: db,
 			entity: 'items',
 			query: { items: { $: { limit: 1 } } },
 		},
@@ -66,6 +66,7 @@ function InstantDBReactUIForm() {
 			listeners: {
 				onChange: ({ formApi }) => {
 					formApi.validate('change');
+					console.log(formApi.state.values);
 					if (formApi.state.isValid) handleIdbUpdate();
 				},
 			},
@@ -128,44 +129,6 @@ function ManualForm() {
 		</div>
 	);
 }
-
-const instantdbReactUiFormCode = `
-function InstantDBReactUIForm() {
-	const form = useIDBForm2({
-		idbOptions: {
-			type: 'update',
-			schema: schema,
-			entity: 'items',
-			query: { items: { $: { limit: 1 } } },
-		},
-		tanstackOptions: ({ handleIdbUpdate, zodSchema }) => ({
-			validators: { onChange: zodSchema },
-			listeners: {
-				onChange: ({ formApi }) => {
-					formApi.validate('change');
-					if (formApi.state.isValid) handleIdbUpdate();
-				},
-			},
-		}),
-	});
-
-	return (
-		<div>
-			<form.Field
-				name="name"
-				children={field => (
-					<TextInput
-						label="Name"
-						name={field.name}
-						value={field.state.value}
-						onChange={e => field.handleChange(e.target.value)}
-					/>
-				)}
-			/>
-		</div>
-	);
-}
-`;
 
 const manualFormCode = `
 function ManualForm() {

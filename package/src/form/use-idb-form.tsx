@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { TransactionChunk } from '@instantdb/core';
+import { EntitiesDef, LinksDef, TransactionChunk } from '@instantdb/core';
 import { id, InstantReactWebDatabase, InstantSchemaDef, InstaQLParams, InstaQLResult, LinkAttrDef } from '@instantdb/react';
 import { DeepValue, FieldApi, FormOptions, useForm } from '@tanstack/react-form';
 import { useCallback, useEffect, useRef } from 'react';
@@ -13,16 +13,17 @@ export type EntityLinks = Record<string, LinkAttrDef<any, any>>;
 export type IDBFormType = 'update' | 'create';
 
 /** The schema of an InstantDB database */
-// export interface IDBSchema<
-// 	Entities extends EntitiesDef,
-// 	Links extends LinksDef<Entities>,
-// > {
-// 	entities: Entities
-// 	links: Links
-// }
+export interface IDBSchema<
+	Entities extends EntitiesDef,
+	Links extends LinksDef<Entities>,
+> {
+	entities: Entities
+	links: Links
+}
 
 // Update to use InstantSchemaDef
-export type IDBSchemaType = InstantSchemaDef<any, any, any>;
+export type IDBSchemaType = IDBSchema<EntitiesDef, any>;
+// export type IDBSchemaType = InstantSchemaDef<EntitiesDef, LinksDef<EntitiesDef>, any>;
 
 // These types remain the same but now reference InstantSchemaDef under the hood
 export type IDBEntityType<T extends IDBSchemaType> = keyof T['entities'];
@@ -64,26 +65,29 @@ export const isDifferent = (a: any, b: any) => {
 	return JSON.stringify(a) !== JSON.stringify(b);
 };
 
+type SimpleFormOptions<TValues> = Omit<FormOptions<TValues, any, any, any, any, any, any, any, any, any>, 'defaultValues'>;
+
 /** An InstantDB wrapper for Tanstack Form. Gain type-safety and automatic database syncing. */
-export function useIDBForm2<
+export function useIDBForm<
 	TSchema extends IDBSchemaType,
 	TEntity extends keyof TSchema['entities'],
 	TQuery extends InstaQLParams<TSchema>,
-	TLinkQueries extends Partial<Record<keyof TSchema['entities'][TEntity]['links'], InstaQLParams<TSchema>>>,
+	TLinkQueries extends Partial<Record<keyof TSchema['entities'][TEntity]['links'], TQuery>>,
 >(
 	options: {
-		idbOptions: Omit<FormOptions<ExtractIDBEntityType<TSchema, TEntity, TQuery>, any, any, any, any, any, any, any, any, any>, 'defaultValues'> & {
+		idbOptions: {
 			type: IDBFormType
 			schema: TSchema
-			db: InstantReactWebDatabase<TSchema>
-			entity: TEntity
-			query: TQuery
-			linkPickerQueries?: TLinkQueries
-			defaultValues?: Partial<ExtractIDBEntityType<TSchema, TEntity, TQuery>>
-			serverDebounceFields?: Partial<Record<keyof ExtractIDBEntityType<TSchema, TEntity, TQuery>, number>>
-			serverThrottleFields?: Partial<Record<keyof ExtractIDBEntityType<TSchema, TEntity, TQuery>, number>>
+			// db: InstantReactWebDatabase<TSchema>
+			entity: TEntity // Note: using TEntity causes extreme lag in type inference
+			query: InstaQLParams<TSchema>
+			// linkPickerQueries?: keyof TSchema['entities'][TEntity]['links']
+			// defaultValues?: Partial<ExtractIDBEntityType<TSchema, TEntity, TQuery>>
+			// serverDebounceFields?: Partial<Record<keyof ExtractIDBEntityType<TSchema, TEntity, TQuery>, number>>
+			// serverThrottleFields?: Partial<Record<keyof ExtractIDBEntityType<TSchema, TEntity, TQuery>, number>>
 		}
-		tanstackOptions: (idbApi: IDBFormApi) => Omit<FormOptions<ExtractIDBEntityType<TSchema, TEntity, TQuery>, any, any, any, any, any, any, any, any, any>, 'defaultValues'>
+		tanstackOptions: (idbApi: IDBFormApi) => SimpleFormOptions<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never>
+		// tanstackOptions: (idbApi: IDBFormApi) => Omit<FormOptions<NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never, any, any, any, any, any, any, any, any, any>, 'defaultValues'>
 	},
 ) {
 	type FormData = ExtractIDBEntityType<TSchema, TEntity, TQuery>;
@@ -383,38 +387,61 @@ export function useIDBForm2<
 	// --------------------------------------------------------------------------------
 	// Wrap field component
 	// TODO: instead of creating a new field, just replace the type and use field.state.meta.idbLinkData
-	const OriginalField = form.Field;
-	const WrappedField = <TName extends keyof FormData & string>(props: {
-		children: (field: FieldApi<FormData, TName, DeepValue<FormData, TName>, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined> & {
-			idb: IDBFieldMeta<DeepValue<FormData, TName>>
-		}) => React.ReactNode
-		name: TName
-		[key: string]: any
-	}) => {
-		return (
-			<OriginalField
-				{...props}
-				children={(field: FieldApi<FormData, TName, DeepValue<FormData, TName>, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>) => {
-					// @ts-expect-error - custom metadata
-					field.idb = field.state.meta;
-					return props.children(field as any);
-				}}
-			/>
-		);
-	};
-	WrappedField.displayName = 'WrappedField';
-	form.Field = WrappedField as any;
+	// const OriginalField = form.Field;
+	// const WrappedField = <TName extends keyof FormData & string>(props: {
+	// 	children: (field: FieldApi<FormData, TName, DeepValue<FormData, TName>, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined> & {
+	// 		idb: IDBFieldMeta<DeepValue<FormData, TName>>
+	// 	}) => React.ReactNode
+	// 	name: TName
+	// 	[key: string]: any
+	// }) => {
+	// 	return (
+	// 		<OriginalField
+	// 			{...props}
+	// 			children={(field: FieldApi<FormData, TName, DeepValue<FormData, TName>, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>) => {
+	// 				// @ts-expect-error - custom metadata
+	// 				field.idb = field.state.meta;
+	// 				return props.children(field as any);
+	// 			}}
+	// 		/>
+	// 	);
+	// };
+	// WrappedField.displayName = 'WrappedField';
+	// form.Field = WrappedField as any;
 
-	type NewForm = Omit<typeof form, 'Field'> & {
+	// Then modify the form type to use our IDBFieldApi
+	type IDBForm = Omit<typeof form, 'Field'> & {
 		/** API for the IDB Form. */
 		idb: IDBFormApi
-		Field: typeof WrappedField
+		Field: <TName extends keyof FormData & string>(props: {
+			name: TName
+			children: (field: IDBFieldApi<FormData, TName>) => React.ReactNode
+			[key: string]: any
+		}) => React.ReactNode
 	};
-	const newForm = form as NewForm;
-	newForm.idb = idbApi;
 
-	return newForm;
+	// type NewForm = Omit<typeof form, 'Field'> & {
+	// 	/** API for the IDB Form. */
+	// 	idb: IDBFormApi
+	// 	Field: typeof WrappedField
+	// };
+	// const newForm = form as NewForm;
+	// const newForm = form as IDBForm;
+	// newForm.idb = idbApi;
+
+	// return newForm;
+	return form;
 }
+
+type IDBFieldApi<
+	TFormData,
+	TName extends keyof TFormData & string,
+	TValue extends DeepValue<TFormData, TName> = DeepValue<TFormData, TName>,
+> = FieldApi<TFormData, TName, TValue, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined> & {
+	state: {
+		meta: IDBFieldMeta<TValue>
+	}
+};
 
 // type ExtendedForm<TFormData> = ReturnType<typeof useForm<TFormData, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined>> & {
 // 	newTestString: string
@@ -422,9 +449,9 @@ export function useIDBForm2<
 
 export interface IDBFieldMeta<T = any> {
 	/** Whether the field has been synced with the database. Only for debounced fields, which don't update immediately */
-	synced: boolean
+	idbSynced: boolean
 	/** Data for the relation picker */
-	data: T extends any[] ? T : T[]
+	idbLinkData: T extends any[] ? T : T[]
 }
 
 // export interface IDBFieldMeta<T = any> {

@@ -1,4 +1,4 @@
-import { InstaQLEntity, InstaQLParams } from '@instantdb/react';
+import { InstaQLParams } from '@instantdb/react';
 import { Space, TextInput } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
 
@@ -8,8 +8,8 @@ import { SearchableSelect } from '~client/lib/components/searchable-select';
 import SubmitButton from '~client/lib/components/submit';
 import { useRouteId } from '~client/lib/utils';
 import { db } from '~client/main';
-import { useIDBForm2 } from '~instantdb-react-ui/form/use-idb-form';
-import { getEntityFields, getErrorMessageForField } from '~instantdb-react-ui/index';
+import { useIDBForm } from '~instantdb-react-ui/form/use-idb-form';
+import { getErrorMessageForField } from '~instantdb-react-ui/index';
 
 const getPersonQuery = (id: string) => ({ persons: { $: { where: { id } }, room: {} } } satisfies InstaQLParams<AppSchema>);
 
@@ -19,7 +19,7 @@ function PersonForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 
 	// const { zodSchema, defaults } = createIdbEntityZodSchema(schema, 'persons');
 
-	const personForm = useIDBForm2({
+	const personForm = useIDBForm({
 		idbOptions: {
 			type: type,
 			schema: schema,
@@ -51,7 +51,7 @@ function PersonForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 				name="name"
 				children={field => (
 					<TextInput
-						className={`${type === 'update' && !field.idb.synced ? 'unsynced' : ''}`}
+						className={`${type === 'update' && !field.state.meta.idbSynced ? 'unsynced' : ''}`}
 						error={getErrorMessageForField(field)}
 						label="Name"
 						value={field.state.value}
@@ -64,7 +64,7 @@ function PersonForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 				name="email"
 				children={field => (
 					<TextInput
-						className={`${type === 'update' && !field.idb.synced ? 'unsynced' : ''}`}
+						className={`${type === 'update' && !field.state.meta.idbSynced ? 'unsynced' : ''}`}
 						error={getErrorMessageForField(field)}
 						label="Email"
 						value={field.state.value}
@@ -77,7 +77,7 @@ function PersonForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 			<personForm.Field
 				name="room"
 				children={(field) => {
-					const linkData = field.idb.data || [];
+					const linkData = field.state.meta.idbLinkData || [];
 					return (
 						<SearchableSelect
 							label="Room"
@@ -92,19 +92,6 @@ function PersonForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 			/>
 
 			<SubmitButton type={type} form={personForm} />
-
-			{/* <IDBForm id={id} entity={entityNames.persons} type={type} {...props}>
-				<IDBField fieldName={personFields.name}>
-					<TextInput label="Name" />
-				</IDBField>
-				<IDBField fieldName={personFields.email}>
-					<TextInput label="Email" />
-				</IDBField>
-				<IDBRelationField<Room> fieldName="room" setRelationPickerLabel={item => item.name}>
-					<SearchableSelect label="Room" data={[]} />
-				</IDBRelationField>
-				{children}
-			</IDBForm> */}
 		</>
 	);
 }
