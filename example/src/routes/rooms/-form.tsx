@@ -25,17 +25,17 @@ function RoomForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 			query: getRoomQuery(id),
 			serverDebounceFields: { name: 500, description: 500 },
 		},
-		tanstackOptions: ({ handleIdbUpdate, handleIdbCreate, zodSchema }) => ({
+		tanstackOptions: ({ handleIDBUpdate, handleIDBCreate, zodSchema }) => ({
 			validators: { onChange: zodSchema },
 			listeners: {
 				onChange: ({ formApi }) => {
 					if (type !== 'update') return;
 					formApi.validate('change');
-					if (formApi.state.isValid) handleIdbUpdate();
+					if (formApi.state.isValid) handleIDBUpdate();
 				},
 			},
 			onSubmit: async () => {
-				const id = await handleIdbCreate(); // create entity
+				const id = await handleIDBCreate(); // create entity
 				if (!id) throw new Error('Failed to create room');
 				navigate({ to: '/rooms/$id', params: { id }, search: { search: '' } }); // nav to new room
 				onValidSubmit?.(); // close modal

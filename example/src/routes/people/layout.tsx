@@ -7,7 +7,7 @@ import schema, { AppSchema } from '~client/db/instant.schema';
 import List from '~client/lib/list/list';
 import { ListHeader } from '~client/lib/list/list-header';
 import { OutletWrapper } from '~client/lib/outlet-wrapper';
-import { getIdbSearchQuery, validateSearch } from '~client/lib/utils';
+import { getIDBSearchQuery, validateSearch } from '~client/lib/utils';
 import { db } from '~client/main';
 import PersonForm from '~client/routes/people/-form';
 import { useIDBPagination } from '~instantdb-react-ui/index';
@@ -28,7 +28,7 @@ function PersonList() {
 	const personQuery = {
 		persons: { $: {
 			order: { name: 'asc' },
-			where: { name: { $ilike: getIdbSearchQuery(search) } },
+			where: { name: { $ilike: getIDBSearchQuery(search) } },
 		} },
 	} satisfies InstaQLParams<AppSchema>;
 

@@ -1,7 +1,7 @@
 {
 	"name": "instantdb-react-ui",
 	"description": "Customizable react components for InstantDB (forms/lists/etc.)",
-	"version": "0.0.5",
+	"version": "0.0.6",
 	"type": "module",
 	"repository": {
 		"type": "git",

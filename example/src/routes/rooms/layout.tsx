@@ -6,7 +6,7 @@ import schema, { AppSchema } from '~client/db/instant.schema';
 import List from '~client/lib/list/list';
 import { ListHeader } from '~client/lib/list/list-header';
 import { OutletWrapper } from '~client/lib/outlet-wrapper';
-import { getIdbSearchQueryForField, validateSearch } from '~client/lib/utils';
+import { getIDBSearchQueryForField, validateSearch } from '~client/lib/utils';
 import { db } from '~client/main';
 import RoomForm from '~client/routes/rooms/-form';
 
@@ -23,7 +23,7 @@ function RoomsList() {
 	const roomsQuery = {
 		rooms: {
 			$: {
-				where: getIdbSearchQueryForField(search, 'name'),
+				where: getIDBSearchQueryForField(search, 'name'),
 			},
 		},
 	} satisfies InstaQLParams<AppSchema>;

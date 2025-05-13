@@ -61,13 +61,13 @@ function InstantDBReactUIForm() {
 			entity: 'items',
 			query: { items: { $: { limit: 1 } } },
 		},
-		tanstackOptions: ({ handleIdbUpdate, zodSchema }) => ({
+		tanstackOptions: ({ handleIDBUpdate, zodSchema }) => ({
 			validators: { onChange: zodSchema },
 			listeners: {
 				onChange: ({ formApi }) => {
 					formApi.validate('change');
 					console.log(formApi.state.values);
-					if (formApi.state.isValid) handleIdbUpdate();
+					if (formApi.state.isValid) handleIDBUpdate();
 				},
 			},
 		}),
@@ -140,13 +140,13 @@ function InstantDBReactUIForm() {
 			entity: 'items',
 			query: { items: { $: { limit: 1 } } },
 		},
-		tanstackOptions: ({ handleIdbUpdate, zodSchema }) => ({
+		tanstackOptions: ({ handleIDBUpdate, zodSchema }) => ({
 			validators: { onChange: zodSchema },
 			listeners: {
 				onChange: ({ formApi }) => {
 					formApi.validate('change');
 					console.log(formApi.state.values);
-					if (formApi.state.isValid) handleIdbUpdate();
+					if (formApi.state.isValid) handleIDBUpdate();
 				},
 			},
 		}),

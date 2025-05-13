@@ -17,8 +17,6 @@ function PersonForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 	const id = useRouteId();
 	const navigate = useNavigate();
 
-	// const { zodSchema, defaults } = createIdbEntityZodSchema(schema, 'persons');
-
 	const personForm = useIDBForm({
 		idbOptions: {
 			type: type,
@@ -28,17 +26,17 @@ function PersonForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 			query: getPersonQuery(id),
 			serverDebounceFields: { name: 500, email: 500 },
 		},
-		tanstackOptions: ({ handleIdbUpdate, handleIdbCreate, zodSchema }) => ({
+		tanstackOptions: ({ handleIDBUpdate, handleIDBCreate, zodSchema }) => ({
 			validators: { onChange: zodSchema },
 			listeners: {
 				onChange: ({ formApi }) => {
 					if (type !== 'update') return;
 					formApi.validate('change');
-					if (formApi.state.isValid) handleIdbUpdate();
+					if (formApi.state.isValid) handleIDBUpdate();
 				},
 			},
 			onSubmit: async () => {
-				const id = await handleIdbCreate(); // create entity
+				const id = await handleIDBCreate(); // create entity
 				if (!id) throw new Error('Failed to create room');
 				navigate({ to: '/people/$id', params: { id }, search: { search: '' } }); // nav to new person
 				onValidSubmit?.(); // close modal

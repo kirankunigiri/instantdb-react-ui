@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AttrsDefs, EntitiesDef, EntityDef, InstantSchemaDef, LinkAttrDef, ValueTypes } from '@instantdb/react';
+import { AttrsDefs, EntitiesDef, EntityDef, LinkAttrDef, ValueTypes } from '@instantdb/react';
 import { z } from 'zod';
 
-import { generateZodEntitySchema, IdbZodAttr, IdbZodLink } from '../utils/utils';
+import { generateZodEntitySchema, IDBZodAttr, IDBZodLink } from '../utils/utils';
 import { IDBSchema } from './use-idb-form';
 
 /**
@@ -47,7 +47,7 @@ function getDefaultValueByType(valueType: string): any {
 
 type BasicEntity = EntityDef<AttrsDefs, Record<string, LinkAttrDef<any, any>>, void>;
 
-export function createIdbEntityZodSchema<
+export function createIDBEntityZodSchema<
 	TSchema extends IDBSchema<EntitiesDef, any>,
 	TEntity extends keyof TSchema['entities'],
 >(
@@ -65,7 +65,7 @@ export function createIdbEntityZodSchema<
 
 	// Handle attributes
 	Object.entries(entityAttrs).forEach(([key, attr]) => {
-		const attrSchema = (attr as IdbZodAttr).zodSchema;
+		const attrSchema = (attr as IDBZodAttr).zodSchema;
 		let fieldSchema: z.ZodType;
 
 		if (attrSchema) {
@@ -92,7 +92,7 @@ export function createIdbEntityZodSchema<
 
 	// Handle links
 	Object.entries(entity.links).forEach(([key, link]) => {
-		const linkSchema = (link as IdbZodLink).zodSchema;
+		const linkSchema = (link as IDBZodLink).zodSchema;
 		if (link.cardinality === 'one') {
 			defaults[key] = null;
 			if (linkSchema) {
@@ -126,7 +126,7 @@ export function createEntityZodSchemaV3(entity: BasicEntity, links: Record<strin
 	const defaults: Record<string, any> = {};
 
 	Object.entries(entityAttrs).forEach(([key, attr]) => {
-		const attrSchema = (attr as IdbZodAttr).zodSchema;
+		const attrSchema = (attr as IDBZodAttr).zodSchema;
 		let fieldSchema: z.ZodType;
 
 		if (attrSchema) {
@@ -156,7 +156,7 @@ export function createEntityZodSchemaV3(entity: BasicEntity, links: Record<strin
 
 	// Add zod schema for links
 	Object.entries(links).forEach(([key, link]) => {
-		const linkSchema = (link as IdbZodLink).zodSchema;
+		const linkSchema = (link as IDBZodLink).zodSchema;
 		if (link.cardinality === 'one') {
 			defaults[key] = null;
 			if (linkSchema) {

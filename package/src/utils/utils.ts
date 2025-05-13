@@ -5,16 +5,16 @@ import { z, ZodError, ZodTypeAny } from 'zod';
 
 import { IDBFieldMeta } from '../form/use-idb-form';
 
-interface IdbZodSchema {
+interface IDBZodSchema {
 	/** The zod schema for the attribute */
 	zodSchema: ZodTypeAny
 }
-interface IdbZodSchemaOptional {
+interface IDBZodSchemaOptional {
 	zodSchema?: ZodTypeAny
 }
 
 /** Add a zod transform to an attribute definition in an instant schema */
-export type IdbZodAttr = DataAttrDef<any, any> & IdbZodSchema;
+export type IDBZodAttr = DataAttrDef<any, any> & IDBZodSchema;
 export const addZod = <T extends DataAttrDef<any, any>>(
 	input: T,
 	zodSchema: ZodTypeAny,
@@ -30,9 +30,9 @@ export const generateZodEntitySchema = (message = 'This relation is required') =
 	id: z.string(),
 }, { message }).passthrough();
 
-export type IdbZodLink = LinkAttrDef<any, any> & IdbZodSchemaOptional;
+export type IDBZodLink = LinkAttrDef<any, any> & IDBZodSchemaOptional;
 /** Make an IDB link required with zod in the schema */
-export const makeLinkRequired = <T extends IdbZodLink>(
+export const makeLinkRequired = <T extends IDBZodLink>(
 	input: T,
 	message?: string,
 ) => {

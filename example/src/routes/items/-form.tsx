@@ -26,7 +26,7 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 	const navigate = useNavigate();
 
 	// Example of how to create a zod schema for the item form in case you need it outside of useIDBForm
-	// const { zodSchema, defaults } = createIdbEntityZodSchema(schema, 'items');
+	// const { zodSchema, defaults } = createIDBEntityZodSchema(schema, 'items');
 
 	const itemForm = useIDBForm({
 		idbOptions: {
@@ -71,13 +71,13 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 				},
 			},
 		},
-		tanstackOptions: ({ handleIdbUpdate, handleIdbCreate, zodSchema }) => ({
+		tanstackOptions: ({ handleIDBUpdate, handleIDBCreate, zodSchema }) => ({
 			validators: { onChange: zodSchema },
 			listeners: {
 				onChange: ({ formApi, fieldApi }) => {
 					if (type !== 'update') return;
 					formApi.validate('change');
-					if (formApi.state.isValid) handleIdbUpdate();
+					if (formApi.state.isValid) handleIDBUpdate();
 					// fieldApi represents the field that triggered the event.
 					// console.log(fieldApi.name, fieldApi.state.value);
 				},
@@ -86,7 +86,7 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 				try {
 					console.log('submitting: ', value);
 
-					const id = await handleIdbCreate(); // create entity
+					const id = await handleIDBCreate(); // create entity
 					if (!id) throw new Error('Failed to create entity');
 					navigate({ to: '/items/$id', params: { id }, search: { search: '' } }); // nav to new person
 					onValidSubmit?.(); // close modal

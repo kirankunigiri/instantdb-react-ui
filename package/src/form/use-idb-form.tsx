@@ -46,9 +46,9 @@ export interface InstantValue {
 /** API for the IDB Form. This is passed to the tanstackOptions callback and can be accessed by the returned form */
 interface IDBFormApi {
 	/** Updates the database with the current form values */
-	handleIdbUpdate: () => void
+	handleIDBUpdate: () => void
 	/** Creates a new entity in the database with the current form values, and returns the id */
-	handleIdbCreate: () => Promise<string | undefined>
+	handleIDBCreate: () => Promise<string | undefined>
 	/** Zod schema for the form entity */
 	zodSchema: z.ZodObject<any>
 }
@@ -105,7 +105,7 @@ export function useIDBForm<
 	}, []);
 
 	/** Updates the database with the current form values */
-	const handleIdbUpdate = useCallback(() => {
+	const handleIDBUpdate = useCallback(() => {
 		if (options.idbOptions.type !== 'update' || !form) return;
 
 		// For reference, this is what the update code does without any debounce/throttle
@@ -188,7 +188,7 @@ export function useIDBForm<
 	}, [options]);
 
 	/** Creates a new entity in the database with the current form values */
-	const handleIdbCreate = useCallback(async () => {
+	const handleIDBCreate = useCallback(async () => {
 		if (options.idbOptions.type !== 'create' || !form) return;
 		const value = form.state.values;
 
@@ -249,7 +249,7 @@ export function useIDBForm<
 	}
 
 	// Create tanstack form
-	const idbApi = { handleIdbUpdate, handleIdbCreate, zodSchema };
+	const idbApi: IDBFormApi = { handleIDBUpdate, handleIDBCreate, zodSchema };
 	const tanstackOptions = options.tanstackOptions(idbApi);
 	const form = useForm({
 		...tanstackOptions,
