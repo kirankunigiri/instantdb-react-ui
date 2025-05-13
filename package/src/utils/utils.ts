@@ -83,24 +83,5 @@ export type IDBExtractFieldType<
 		meta: IDBFieldMeta<TFieldValue>
 	}
 };
-// export type IDBExtractFieldType<
-// 	TFormData,
-// 	TFieldName extends DeepKeys<TFormData>,
-// 	TFieldValue extends DeepValue<TFormData, TFieldName> = DeepValue<TFormData, TFieldName>,
-// > = FieldApi<TFormData, TFieldName, TFieldValue, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any, any> & {
-// 	idb: IDBFieldMeta<TFieldValue>
-// };
-
-// Extract the form type for a form data type
-export type IDBExtractFormType<TFormData> = FormApi<
-	TFormData,
-	any,
-	any,
-	any,
-	any,
-	any,
-	any,
-	any,
-	any,
-	any
->;
+/** Extract the form type for a form data type */
+export type IDBExtractFormType<TFormData> = FormApi<TFormData, any, any, any, any, any, any, any, any, any>;
