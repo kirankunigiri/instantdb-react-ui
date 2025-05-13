@@ -26,7 +26,7 @@ function RouteComponent() {
 					</div>
 					<div className="flex-1 overflow-hidden">
 						<div className="h-full overflow-auto">
-							<CodeHighlight code={instantdbReactUiFormCode} language="tsx" className="w-full" />
+							<CodeHighlight withCopyButton={false} code={instantdbReactUiFormCode} language="tsx" className="w-full" />
 						</div>
 					</div>
 				</div>
@@ -43,7 +43,7 @@ function RouteComponent() {
 					</div>
 					<div className="flex-1 overflow-hidden">
 						<div className="h-full overflow-auto">
-							<CodeHighlight code={manualFormCode} language="tsx" className="w-full" />
+							<CodeHighlight withCopyButton={false} code={manualFormCode} language="tsx" className="w-full" />
 						</div>
 					</div>
 				</div>
@@ -129,6 +129,46 @@ function ManualForm() {
 		</div>
 	);
 }
+
+const instantdbReactUiFormCode = `
+function InstantDBReactUIForm() {
+	const form = useIDBForm({
+		idbOptions: {
+			type: 'update',
+			schema: schema,
+			db: db,
+			entity: 'items',
+			query: { items: { $: { limit: 1 } } },
+		},
+		tanstackOptions: ({ handleIdbUpdate, zodSchema }) => ({
+			validators: { onChange: zodSchema },
+			listeners: {
+				onChange: ({ formApi }) => {
+					formApi.validate('change');
+					console.log(formApi.state.values);
+					if (formApi.state.isValid) handleIdbUpdate();
+				},
+			},
+		}),
+	});
+
+	return (
+		<div>
+			<form.Field
+				name="name"
+				children={field => (
+					<TextInput
+						label="Name"
+						name={field.name}
+						value={field.state.value}
+						onChange={e => field.handleChange(e.target.value)}
+					/>
+				)}
+			/>
+		</div>
+	);
+}
+`;
 
 const manualFormCode = `
 function ManualForm() {

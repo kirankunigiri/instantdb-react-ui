@@ -1,0 +1,54 @@
+name: Build and Publish
+
+on:
+    push:
+        branches:
+            - main
+
+permissions:
+    contents: write
+    pull-requests: write
+
+jobs:
+    check_version:
+        runs-on: ubuntu-latest
+        outputs:
+            publish_needed: ${{ steps.check.outputs.publish_needed }}
+        steps:
+            - uses: actions/checkout@v4
+
+            - id: check
+              run: |
+                  PACKAGE_NAME=$(jq -r .name package/package.json)
+                  PACKAGE_VERSION=$(jq -r .version package/package.json)
+                  CURRENT_VERSION=$(npm view $PACKAGE_NAME version)
+                  echo "current version: $CURRENT_VERSION"
+                  echo "package version: $PACKAGE_VERSION"
+                  if [ "$PACKAGE_VERSION" != "$CURRENT_VERSION" ]; then
+                    echo "publish_needed=true" >> $GITHUB_OUTPUT
+                  else
+                    echo "publish_needed=false" >> $GITHUB_OUTPUT
+                  fi
+              shell: bash
+
+    build_and_publish:
+        runs-on: ubuntu-latest
+        needs: check_version
+        if: needs.check_version.outputs.publish_needed == 'true'
+        steps:
+            - uses: actions/checkout@v4
+
+            - run: cp README.md package/README.md
+
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+                  registry-url: 'https://registry.npmjs.org'
+
+            - run: bun install --cwd package
+
+            - run: bun run --cwd package build
+
+            - run: cd package && bun publish --access public
+              env:
+                  NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}

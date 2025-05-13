@@ -28,7 +28,7 @@ function RoomForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 		tanstackOptions: ({ handleIdbUpdate, handleIdbCreate, zodSchema }) => ({
 			validators: { onChange: zodSchema },
 			listeners: {
-				onChange: ({ formApi, fieldApi }) => {
+				onChange: ({ formApi }) => {
 					if (type !== 'update') return;
 					formApi.validate('change');
 					if (formApi.state.isValid) handleIdbUpdate();

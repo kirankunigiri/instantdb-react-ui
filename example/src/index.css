@@ -105,3 +105,7 @@ body {
 		@apply justify-center;
 	}
 }
+
+.mantine-CodeHighlight-copy {
+	float: right;
+}

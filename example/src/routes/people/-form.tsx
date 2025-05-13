@@ -31,7 +31,7 @@ function PersonForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 		tanstackOptions: ({ handleIdbUpdate, handleIdbCreate, zodSchema }) => ({
 			validators: { onChange: zodSchema },
 			listeners: {
-				onChange: ({ formApi, fieldApi }) => {
+				onChange: ({ formApi }) => {
 					if (type !== 'update') return;
 					formApi.validate('change');
 					if (formApi.state.isValid) handleIdbUpdate();
@@ -39,6 +39,7 @@ function PersonForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 			},
 			onSubmit: async () => {
 				const id = await handleIdbCreate(); // create entity
+				if (!id) throw new Error('Failed to create room');
 				navigate({ to: '/people/$id', params: { id }, search: { search: '' } }); // nav to new person
 				onValidSubmit?.(); // close modal
 			},
