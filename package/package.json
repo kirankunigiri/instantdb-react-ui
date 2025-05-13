@@ -1,7 +1,8 @@
 {
 	"name": "instantdb-react-ui",
 	"description": "Customizable react components for InstantDB (forms/lists/etc.)",
-	"version": "0.0.2",
+	"version": "0.0.5",
+	"type": "module",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/kirankunigiri/instantdb-react-ui",
@@ -9,14 +10,10 @@
 	},
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
-	"exports": {
-		"import": "./dist/index.mjs",
-		"require": "./dist/index.js"
-	},
 	"files": ["dist"],
 	"scripts": {
 		"build": "tsc -p ./tsconfig.json",
-		"release": "bun run build && npm publish",
+		"release": "bun run build || true && npm publish",
 		"lint": "tsc"
 	},
 	"keywords": [

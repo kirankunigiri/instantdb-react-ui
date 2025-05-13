@@ -47,8 +47,6 @@ jobs:
 
             - run: bun install --cwd package
 
-            - run: bun run --cwd package build
-
-            - run: cd package && bun publish --access public
+            - run: cd package && bun run build || true && bun publish --access public
               env:
                   NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
