@@ -1,25 +1,9 @@
-import { i, InstaQLEntity } from '@instantdb/react';
+import { i } from '@instantdb/react';
 import { z } from 'zod';
 
 // TODO: import from package causes an error where schema:push fails when parsing field.tsx
 // TODO: this can be fixed by asking instant team or always importing directly from utils folder
 import { addZod, makeLinkRequired } from '../../../package/src/utils/utils';
-
-// Create a fallback function that just returns the input
-// const defaultAddZod = (field: any) => field;
-
-// Initialize with the default function
-// let addZod = defaultAddZod;
-
-// Try to import the real addZod asynchronously
-// (async () => {
-// 	try {
-// 		const module = await import('../../../package/src/index');
-// 		addZod = module.addZod;
-// 	} catch {
-// 		// Keep using defaultAddZod if import fails
-// 	}
-// })();
 
 // Enums
 export enum ITEM_CATEGORY {
@@ -87,33 +71,3 @@ const schema: AppSchema = _schema;
 
 export type { AppSchema };
 export default schema;
-
-// Test that type inference works
-type Item = InstaQLEntity<AppSchema, 'items'>;
-
-type EntityFields<Schema extends { entities: any }, T extends keyof Schema['entities']> =
-    Record<
-    	keyof (typeof _schema['entities'][T]['attrs'] &
-    	  typeof _schema['entities'][T]['links']),
-    	string
-    >;
-
-function getEntities<Schema extends { entities: any }>(schema: Schema) {
-	return Object.fromEntries(
-		Object.keys(schema.entities).map(entityName => [
-			entityName,
-			Object.fromEntries(
-				[...Object.keys(schema.entities[entityName].attrs),
-					...Object.keys(schema.entities[entityName].links)]
-					.map(key => [key, key]),
-			),
-		]),
-	) as {
-		[K in keyof Schema['entities']]: EntityFields<Schema, K>
-	};
-}
-
-// Example usage:
-export const AllEntities = getEntities(_schema);
-
-type Test2 = EntityFields<AppSchema, 'items'>;

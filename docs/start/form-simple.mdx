@@ -1,0 +1,74 @@
+---
+title: "Simple Form"
+description: "Render forms with validation and submission"
+icon: "pen-to-square"
+iconType: "solid"
+---
+
+This library uses Tanstack Form under the hood. It works by letting you pass configurable options related to InstantDB, and also allows passing any custom options to Tanstack Form. It then handles updates and syncing for you.
+
+### Example - Simple Form
+
+This is a simple example of an update form for the Items table. It doesn't cover all the available features, but should give you a good starting point.
+
+1. Passing your schema, db, entity name, and query will allow the form to be typesafe and automatically sync when changes are made
+2. Use the tanstack options to pass any custom options to the Tanstack Form instance. We automatically give you access to `handleIDBUpdate` and `handleIDBCreate` which can be called to automatically update/create in InstantDB with the latest values in the form. `zodSchema` is also automatically created for you based on your Instant schema.
+3. Write your UI components using the `form.Field` component. This component is a wrapper around the Tanstack Form Field component, and automatically gives you typesafe field values.
+
+```tsx
+import { useIDBForm, getErrorMessageForField } from "instantdb-react-ui";
+
+function InstantDBReactUIForm() {
+	const form = useIDBForm({
+		idbOptions: {
+			type: 'update',
+			schema: schema,
+			db: db,
+			entity: 'items',
+			query: { items: { $: { limit: 1 } } },
+		},
+		tanstackOptions: ({ handleIDBUpdate, zodSchema }) => ({
+			validators: { onChange: zodSchema },
+			listeners: {
+				onChange: ({ formApi }) => {
+					formApi.validate('change');
+					console.log(formApi.state.values);
+					if (formApi.state.isValid) handleIDBUpdate();
+				},
+			},
+		}),
+	});
+
+	return (
+		<div>
+			<form.Field
+				name="name"
+				children={field => (
+					<TextInput
+						label="Name"
+						name={field.name}
+						value={field.state.value}
+						onChange={e => field.handleChange(e.target.value)}
+						error={getErrorMessageForField(field)}
+					/>
+				)}
+			/>
+		</div>
+	);
+}
+```
+
+#### TanStack Form Reference
+Form state is managed under the hood using the `@tanstack/react-form` library with the `useForm` hook. See the docs for more information. You can pass all of the original `useForm` parameters to the `tanstackOptions` object. `form.Field` also uses the same API, so you have access to all tanstack form field values, such as `field.state.meta`
+
+<Card
+  color="#E7B10A"
+  horizontal
+  title="TanStack Form Docs"
+  icon="book-open-cover"
+  href="https://tanstack.com/form/latest/docs/overview"
+>
+  Read the reference for the useForm hook
+</Card>
+
+In the next page, we'll cover a more complex example with all of the available features, including creating a reusable component that works for both create and update forms, handling relationship picker fields, debouncing, and more.

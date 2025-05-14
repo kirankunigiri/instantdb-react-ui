@@ -20,9 +20,22 @@
 						"pages": [
 							"start/about",
 							"start/install",
-							"start/form",
-							"start/list",
 							"start/zod"
+						]
+					},
+					{
+						"group": "Forms",
+						"pages": [
+							"start/form-simple",
+							"start/form-complex",
+							"start/form-api"
+						]
+					},
+					{
+						"group": "Lists",
+						"pages": [
+							"start/list",
+							"start/list-wrapper"
 						]
 					},
 					{

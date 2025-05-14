@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { z } from 'zod';
 
 import { internalCreateIDBEntityZodSchema } from '../form/zod';
+import { logger } from '../utils/logger';
 
 export type EntityLinks = Record<string, LinkAttrDef<any, any>>;
 
@@ -30,13 +31,6 @@ export type ExtractIDBEntityType<
 	TSchema extends IDBSchemaType,
 	TEntity extends IDBEntityType<TSchema>,
 	TQuery extends IDBQueryType<TSchema>,
-> = NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never;
-
-/** A slightly more permissive version of ExtractIDBEntityType for use with custom components */
-export type ExtractFormDataType<
-	TSchema extends IDBSchemaType,
-	TQuery extends Record<string, any>,
-	TEntity extends keyof InstaQLResult<TSchema, TQuery>,
 > = NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never;
 
 export interface InstantValue {
@@ -266,7 +260,7 @@ export function useIDBForm<
 		if (idbOptions.type === 'update') {
 			const unsubscribe = db._core.subscribeQuery(idbOptions.query, (resp) => {
 				if (resp.error) {
-					console.error(resp.error.message);
+					logger.error(resp.error.message);
 					return;
 				}
 				if (resp.data) {
@@ -282,7 +276,7 @@ export function useIDBForm<
 
 						// Update the form if the value has changed
 						if (isDifferent(prevValue, newValue)) {
-							console.log(`Received Update for ${fieldName}: ${JSON.stringify(newValue)}`);
+							logger.log(`Received Update for ${fieldName}: ${JSON.stringify(newValue)}`);
 							form.setFieldValue(fieldName, newValue);
 						}
 
@@ -337,11 +331,11 @@ export function useIDBForm<
 
 		// Skip update if the value hasn't changed.
 		if (!isDifferent(oldValue, newValue)) {
-			console.log(`Skipping server update for field: ${fieldName}`);
+			logger.log(`Skipping server update for field: ${fieldName}`);
 			return transactions;
 		}
 
-		console.log(`Server Update: ${fieldName} from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)}`);
+		logger.log(`Server Update: ${fieldName} from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)}`);
 		const id = form.getFieldValue('id') as string;
 
 		const link = links[fieldName];

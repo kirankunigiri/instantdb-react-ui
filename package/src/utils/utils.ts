@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { DataAttrDef, LinkAttrDef } from '@instantdb/react';
+import { DataAttrDef, InstaQLResult, LinkAttrDef } from '@instantdb/react';
 import { DeepKeys, DeepValue, FieldApi, FormApi } from '@tanstack/react-form';
 import { z, ZodError, ZodTypeAny } from 'zod';
 
-import { IDBFieldMeta } from '../form/use-idb-form';
+import { IDBFieldMeta, IDBSchemaType } from '../form/use-idb-form';
 
 interface IDBZodSchema {
 	/** The zod schema for the attribute */
@@ -73,6 +73,13 @@ export const getErrorMessageForField = (field: FieldApi<any, any, any, any, any,
 	return (field.state.meta.errors as ZodError[]).map(error => error.message).join(', ');
 };
 
+/** A slightly more permissive version of ExtractIDBEntityType for use with custom components */
+export type IDBExtractFormDataType<
+	TSchema extends IDBSchemaType,
+	TQuery extends Record<string, any>,
+	TEntity extends keyof InstaQLResult<TSchema, TQuery>,
+> = NonNullable<InstaQLResult<TSchema, TQuery>[TEntity]> extends (infer U)[] ? U : never;
+
 /** Get a field type from a tanstack form */
 export type IDBExtractFieldType<
 	TFormData,
@@ -85,3 +92,29 @@ export type IDBExtractFieldType<
 };
 /** Extract the form type for a form data type */
 export type IDBExtractFormType<TFormData> = FormApi<TFormData, any, any, any, any, any, any, any, any, any>;
+
+// Old example code of getting full details of an entity
+// type EntityFields<Schema extends { entities: any }, T extends keyof Schema['entities']> =
+//     Record<
+//     	keyof (typeof _schema['entities'][T]['attrs'] &
+//     	  typeof _schema['entities'][T]['links']),
+//     	string
+//     >;
+
+// function getEntities<Schema extends { entities: any }>(schema: Schema) {
+// 	return Object.fromEntries(
+// 		Object.keys(schema.entities).map(entityName => [
+// 			entityName,
+// 			Object.fromEntries(
+// 				[...Object.keys(schema.entities[entityName].attrs),
+// 					...Object.keys(schema.entities[entityName].links)]
+// 					.map(key => [key, key]),
+// 			),
+// 		]),
+// 	) as {
+// 		[K in keyof Schema['entities']]: EntityFields<Schema, K>
+// 	};
+// }
+// Example usage:
+// export const AllEntities = getEntities(_schema);
+// type Test2 = EntityFields<AppSchema, 'items'>;

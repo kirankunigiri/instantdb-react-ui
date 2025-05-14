@@ -1,11 +1,25 @@
+---
+title: "List Wrapper"
+description: "Create a reusable list wrapper component"
+icon: "recycle"
+---
+
+### Wrapper Component
+
+If you use the list component in your app often with different entities/queries, it's a good idea to create a reusable wrapper component with defaults for your app. Below is an example from the demo website that uses Mantine and Tanstack Router.
+- Extend IDBList props to allow full customization
+- Styles are automatically applied to all lists
+- Populates default skeleton and no results UI components
+- Take in a route param to allow clicking on an item to navigate to a detail view
+
+```tsx 
 import { ScrollArea } from '@mantine/core';
 import { Skeleton } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 
 import type { RouteFullPaths } from '~client/lib/sidebar';
 import type { SearchParams } from '~client/lib/utils';
-import { IDBEntityType, IDBQueryType, IDBSchemaType } from '~instantdb-react-ui/form/use-idb-form';
-import { IDBList, IDBListProps } from '~instantdb-react-ui/list/list';
+import { IDBList, IDBListProps, IDBEntityType, IDBQueryType, IDBSchemaType } from 'instantdb-react-ui';
 
 /** Extends IDBListProps with our custom wrapper props */
 type ListWrapperProps<
@@ -66,3 +80,4 @@ function ListSkeleton() {
 }
 
 export default List;
+```

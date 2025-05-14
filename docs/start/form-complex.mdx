@@ -1,19 +1,24 @@
-import { InstaQLParams } from '@instantdb/react';
-import { Checkbox, MultiSelect, TextInput } from '@mantine/core';
-import { DatePickerInput } from '@mantine/dates';
-import { useStore } from '@tanstack/react-form';
-import { useNavigate } from '@tanstack/react-router';
-import { toast } from 'sonner';
+---
+title: "Complex Form"
+description: "Complex reusable create/update form"
+icon: "book"
+iconType: "regular"
+---
 
-import schema, { AppSchema, ITEM_CATEGORY } from '~client/db/instant.schema';
-import { ReusableFormComponentProps } from '~client/lib/components/components';
-import { SearchableSelect } from '~client/lib/components/searchable-select';
-import SubmitButton from '~client/lib/components/submit';
-import { useRouteId } from '~client/lib/utils';
-import { db } from '~client/main';
-import { useIDBForm } from '~instantdb-react-ui/form/use-idb-form';
-import { getErrorMessageForField, IDBExtractFieldType, IDBExtractFormDataType, IDBExtractFormType } from '~instantdb-react-ui/index';
+In this example, we'll show how you can create a single form component that works for both create and update forms. We will also cover the following:
 
+- Create a single form component that works for both create and update based on a `type` prop
+- Create fields that are related to each other and need to update when one of them changes
+- Automatically handle relations and link pickers. The library automatically links/unlinks relations when a relational field is updated.
+- Debouncing/throttling fields by a specific time
+- Showing a sync indicator while updates are pending due to debouncing/throttling
+- How to pass typesafe field data to child components
+
+The following component can be used as a create or update form just by changing the `type` prop.
+
+### Example
+
+```tsx
 const getItemQuery = (id: string) => ({
 	items: {
 		room: {},
@@ -21,12 +26,13 @@ const getItemQuery = (id: string) => ({
 	},
 } satisfies InstaQLParams<AppSchema>);
 
-function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
+export interface ReusableFormComponentProps {
+	type: IDBFormType
+}
+
+function ItemForm({ type }: ReusableFormComponentProps) {
 	const id = useRouteId();
 	const navigate = useNavigate();
-
-	// Example of how to create a zod schema for the item form in case you need it outside of useIDBForm
-	// const { zodSchema, defaults } = createIDBEntityZodSchema(schema, 'items');
 
 	const itemForm = useIDBForm({
 		idbOptions: {
@@ -50,8 +56,9 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 				shareable: true,
 				category: ITEM_CATEGORY.Other,
 			},
+			// You can use throttleDebounceFields instead if you prefer throttling
 			serverDebounceFields: {
-				name: 500,
+				name: 500, // debounce name field by 500ms
 			},
 			// Optional: Define queries for relation fields
 			linkPickerQueries: {
@@ -75,21 +82,19 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 			validators: { onChange: zodSchema },
 			listeners: {
 				onChange: ({ formApi, fieldApi }) => {
+					// Update form only - we send the updates to InstantDB when the form is valid
 					if (type !== 'update') return;
 					formApi.validate('change');
 					if (formApi.state.isValid) handleIDBUpdate();
-					// fieldApi represents the field that triggered the event.
-					// console.log(fieldApi.name, fieldApi.state.value);
 				},
 			},
 			onSubmit: async ({ value }) => {
 				try {
-					console.log('submitting: ', value);
-
+					// Create form only - handleIDBCreate will create the new entity for us
+					if (type !== 'create') return;
 					const id = await handleIDBCreate(); // create entity
 					if (!id) throw new Error('Failed to create entity');
 					navigate({ to: '/items/$id', params: { id }, search: { search: '' } }); // nav to new person
-					onValidSubmit?.(); // close modal
 				} catch (error: unknown) {
 					let message = 'Error submitting form';
 					if (error instanceof Error && error.message) message += `: ${error.message}`;
@@ -105,6 +110,7 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 				name="name"
 				children={field => (
 					<TextInput
+						// Show a sync indicator if the field is synced, or is still pending an update due to debouncing
 						className={`${type === 'update' && !field.state.meta.idbSynced ? 'unsynced' : ''}`}
 						error={getErrorMessageForField(field)}
 						label={`Name ${type === 'update' ? (field.state.meta.idbSynced ? '(Synced)' : '(Unsynced)') : ''}`}
@@ -124,6 +130,7 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 					/>
 				)}
 			/>
+
 			<itemForm.Field
 				name="category"
 				children={field => (
@@ -139,6 +146,9 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 			<itemForm.Field
 				name="room"
 				children={(field) => {
+					// `field.state.meta.idbLinkData` is automatically populated based on the linkPickerQueries
+					// In this case, it refers to the list of rooms to pass to our select field
+					// This example has rooms and owners connected. When a room is changed, the owner field will be cleared and the form will not be updated until the user selects new people.
 					const linkData = field.state.meta.idbLinkData || [];
 					return (
 						<SearchableSelect
@@ -154,6 +164,7 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 				}}
 			/>
 
+			{/* See the OwnerField component below on how to pass typesafe field data to child components */}
 			<itemForm.Field
 				name="owner"
 				children={field => <OwnerField field={field} form={itemForm} />}
@@ -176,12 +187,17 @@ function ItemForm({ onValidSubmit, type }: ReusableFormComponentProps) {
 	);
 }
 
+// Helper utility to extract the form data type from the query
 type ItemFormDataType = IDBExtractFormDataType<AppSchema, ReturnType<typeof getItemQuery>, 'items'>;
 
+// In some cases, you want to create reusable child components that can be used in different forms.
+// You can use the `IDBExtractFieldType` and `IDBExtractFormType` utilities to extract the typesafe field and form data types from the query.
 function OwnerField({ field, form }: {
 	field: IDBExtractFieldType<ItemFormDataType, 'owner'>
 	form: IDBExtractFormType<ItemFormDataType>
 }) {
+	// In this example, we're using the `useStore` hook to get the value of the room field.
+	// Then, we only display owners that are connected to the selected room.
 	const room = useStore(form.store, state => state.values.room);
 	const disabled = !room;
 	const roomId = room ? room.id : '';
@@ -203,3 +219,4 @@ function OwnerField({ field, form }: {
 }
 
 export default ItemForm;
+```

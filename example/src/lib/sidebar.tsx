@@ -3,7 +3,7 @@ import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import type { FileRoutesByPath } from '@tanstack/react-router';
 import { Link } from '@tanstack/react-router';
 import { type IconType } from 'react-icons';
-import { LuDoorOpen, LuExternalLink, LuGitCompare, LuGitCompareArrows, LuInfo, LuMoon, LuSun, LuUsers } from 'react-icons/lu';
+import { LuDoorOpen, LuExternalLink, LuGitCompareArrows, LuInfo, LuMoon, LuSun, LuUsers } from 'react-icons/lu';
 import { MdOutlineCategory } from 'react-icons/md';
 
 import { routeTree } from '~client/routeTree.gen';
@@ -23,6 +23,8 @@ export const organizedRoutes: RouteGroup = {
 		{ fullPath: '/items', icon: MdOutlineCategory },
 		{ fullPath: '/people', icon: LuUsers },
 		{ fullPath: '/rooms', icon: LuDoorOpen },
+	],
+	Examples: [
 		{ fullPath: '/compare', icon: LuGitCompareArrows },
 	],
 	Info: [

@@ -5,66 +5,59 @@ icon: "list"
 ---
 
 ### Example
-Render a list and automatically get access to type-safe data. Pick between normal, infinite, and paginated modes.
+Render a list and automatically get access to type-safe data. Pick between normal, infinite, and paginated modes. Optionally pass a query.
 
 <CodeGroup>
 
 ```tsx normal
 import { IDBList } from "instantdb-react-ui";
 
-type Item = InstaQLEntity<AppSchema, 'items'>;
-
-return (
-	<IDBList<Item>
-		entity={entityNames.items}
-		render={item => (
-			<div>
-				<p>{item.name}</p>
-				<p>{item.category}</p>
-			</div>
-		)}
-	/>
-)
-
+<IDBList
+	mode="normal"
+	schema={schema}
+	db={db}
+	entity="persons"
+	render={(person, id) => (
+		<p className="text-sm">{person.name}</p>
+	)}
+/>
 ```
 
 ```tsx infinite
 import { IDBList } from "instantdb-react-ui";
 
-type Item = InstaQLEntity<AppSchema, 'items'>;
-
-return (
-	<IDBList<Item>
-		mode="infinite"
-		entity={entityNames.items}
-		render={item => (
-			<div>
-				<p>{item.name}</p>
-				<p>{item.category}</p>
-			</div>
-		)}
-	/>
-)
-
+<IDBList
+	mode="infinite"
+	schema={schema}
+	db={db}
+	entity="persons"
+	render={(person, id) => (
+		<p className="text-sm">{person.name}</p>
+	)}
+/>
 ```
 
 ```tsx paginated
-import { IDBList } from "instantdb-react-ui";
+import { IDBList, useIDBPagination } from "instantdb-react-ui";
+import { Pagination } from '@mantine/core';
 
-type Item = InstaQLEntity<AppSchema, 'items'>;
+// Pagination Hook
+const pagination = useIDBPagination({
+	schema: schema,
+	db: db,
+	model: 'persons',
+	pageSize: 10,
+});
 
-return (
-	<IDBList<Item>
-		mode="paginated"
-		entity={entityNames.items}
-		render={item => (
-			<div>
-				<p>{item.name}</p>
-				<p>{item.category}</p>
-			</div>
-		)}
-	/>
-)
+// UI Component from Mantine to show page list. Use whatever you want here.
+<Pagination
+	siblings={1}
+	withEdges
+	boundaries={1}
+	value={pagination.page}
+	total={pagination.totalPages}
+	onChange={page => pagination.goToPage(page)}
+/>
 
 ```
 
@@ -103,66 +96,3 @@ return (
 <ParamField path="pagination" type="PaginationState">
   Required when mode is 'paginated'. Pagination state object from useIDBPagination hook
 </ParamField>
-
-### Wrapper Component
-
-If you use the list component in your app often with different entities/queries, it's a good idea to create a reusable wrapper component. Below is an example from the demo website that uses Mantine and Tanstack Router.
-- Extend IDBList props to allow full customization
-- Styles are automatically applied to all lists
-- Take in a route param to allow clicking on an item to navigate to a detail view
-
-```tsx 
-import { ScrollArea } from '@mantine/core';
-import { Skeleton } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
-
-import type { RouteFullPaths } from '~client/lib/sidebar';
-import type { SearchParams } from '~client/lib/utils';
-import { IDBList, type IDBListProps } from '~instantdb-react-ui/list/list';
-
-type ListWrapperProps<T> = IDBListProps<T> & {
-	route: RouteFullPaths
-	itemId?: number | string
-	search?: SearchParams
-};
-
-function List<T extends Record<string, any>>({ itemId, search, route, ...idbListProps }: ListWrapperProps<T>) {
-	return (
-		<ScrollArea className="list-scrollarea">
-			<IDBList<T>
-				{...idbListProps}
-
-				// Defaults
-				skeleton={idbListProps.skeleton ?? <ListSkeleton />}
-				noResults={idbListProps.noResults ?? <p className="text-gray-500">No results found</p>}
-
-				// Render
-				render={(item: T, id: string | number) => (
-					<Link
-						key={id}
-						to={route}
-						params={{ id: id.toString() }}
-						className="list-item"
-						data-selected={id === itemId}
-						search={search}
-					>
-						{idbListProps.render(item, id)}
-					</Link>
-				)}
-			/>
-		</ScrollArea>
-	);
-}
-
-function ListSkeleton() {
-	return (
-		<>
-			{Array.from({ length: 10 }).map((_, i: number) => (
-				<Skeleton key={i} height={42} className="list-item" />
-			))}
-		</>
-	);
-}
-
-export default List;
-```

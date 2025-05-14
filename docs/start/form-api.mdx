@@ -1,0 +1,37 @@
+---
+title: "Form API"
+description: "Form API reference"
+icon: "code"
+iconType: "solid"
+---
+
+`useIDBForm` adds several new fields and methods to the tanstack form instance. You can still use all the original tanstack form fields and methods.
+
+The form object has the following fields added, which are also given to you in the `tanstackOptions` callback.
+
+```tsx
+interface IDBFormApi {
+	/** Updates the database with the current form values */
+	handleIDBUpdate: () => void
+	/** Creates a new entity in the database with the current form values, and returns the id */
+	handleIDBCreate: () => Promise<string | undefined>
+	/** Zod schema for the form entity */
+	zodSchema: z.ZodObject<any>
+}
+
+const form = useIDBForm(...)
+// form object has the above IDBFormApi object
+```
+
+The fields are also given 2 extra meta fields.
+
+```tsx
+export interface IDBFieldMeta<T = any> {
+	/** Whether the field has been synced with the database. Only for debounced/throttled fields, which don't update immediately */
+	idbSynced: boolean
+	/** Data for the relation picker */
+	idbLinkData: T extends any[] ? T : T[]
+}
+
+// field.state.meta has the above fields
+```

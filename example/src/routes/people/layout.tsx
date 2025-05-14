@@ -10,7 +10,7 @@ import { OutletWrapper } from '~client/lib/outlet-wrapper';
 import { getIDBSearchQuery, validateSearch } from '~client/lib/utils';
 import { db } from '~client/main';
 import PersonForm from '~client/routes/people/-form';
-import { useIDBPagination } from '~instantdb-react-ui/index';
+import { IDBList, useIDBPagination } from '~instantdb-react-ui/index';
 
 export const Route = createFileRoute('/people')({
 	component: PersonList,
@@ -80,42 +80,71 @@ function PersonList() {
 				{/* All list types */}
 				{/* List - Normal */}
 				{listMode === 'normal' && (
-					<List
-						schema={schema}
-						db={db}
-						mode="normal"
-						entity="persons"
-						query={personQuery}
-						route="/people/$id"
-						itemId={params.id}
-						search={search}
-						render={(person, id) => (
-							<p className="text-sm">{person.name}</p>
-						)}
-					/>
+					<>
+						{/* Wrapper Version */}
+						<List
+							schema={schema}
+							db={db}
+							mode="normal"
+							entity="persons"
+							query={personQuery}
+							route="/people/$id"
+							itemId={params.id}
+							search={search}
+							render={(person, id) => (
+								<p className="text-sm">{person.name}</p>
+							)}
+						/>
+
+						{/* Normal Version */}
+						{/* <IDBList
+							mode="normal"
+							schema={schema}
+							db={db}
+							entity="persons"
+							render={(person, id) => (
+								<p className="text-sm">{person.name}</p>
+							)}
+						/> */}
+					</>
 				)}
 
 				{/* List - Infinite */}
 				{listMode === 'infinite' && (
-					<List
-						schema={schema}
-						db={db}
-						entity="persons"
-						mode="infinite"
-						pageSize={10}
-						query={personQuery}
-						route="/people/$id"
-						itemId={params.id}
-						search={search}
-						render={person => (
-							<p className="text-sm">{person.name}</p>
-						)}
-					/>
+					<>
+						{/* Wrapper Version */}
+						<List
+							schema={schema}
+							db={db}
+							entity="persons"
+							mode="infinite"
+							pageSize={10}
+							query={personQuery}
+							route="/people/$id"
+							itemId={params.id}
+							search={search}
+							render={person => (
+								<p className="text-sm">{person.name}</p>
+							)}
+						/>
+
+						{/* Normal Version */}
+						{/* <IDBList
+							mode="infinite"
+							schema={schema}
+							db={db}
+							entity="persons"
+							render={(person, id) => (
+								<p className="text-sm">{person.name}</p>
+							)}
+						/> */}
+					</>
 				)}
 
 				{/* List - Paginated */}
 				{listMode === 'paginated' && (
 					<>
+						{/* Wrapper Version */}
 						<List
 							schema={schema}
 							db={db}
@@ -129,6 +158,19 @@ function PersonList() {
 								<p className="text-sm">{person.name}</p>
 							)}
 						/>
+
+						{/* Normal Version */}
+						{/* <IDBList
+							mode="paginated"
+							pagination={pagination}
+							schema={schema}
+							db={db}
+							entity="persons"
+							render={(person, id) => (
+								<p className="text-sm">{person.name}</p>
+							)}
+						/> */}
+
 						<div className="items-center justify-center py-2">
 							<Pagination
 								siblings={1}

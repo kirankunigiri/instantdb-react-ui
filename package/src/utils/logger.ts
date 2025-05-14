@@ -1,6 +1,14 @@
 // logger.ts
 const LIB_NAMESPACE = 'instantdb-react-ui';
 
+export function setIDBReactUIDebugMode(mode: boolean) {
+	if (typeof window !== 'undefined') {
+		localStorage.setItem(`${LIB_NAMESPACE}:debug`, mode.toString());
+	} else if (typeof process !== 'undefined') {
+		process.env.DEBUG = mode ? LIB_NAMESPACE : '';
+	}
+}
+
 function isEnabled() {
 	if (typeof window !== 'undefined') {
 		return localStorage.getItem(`${LIB_NAMESPACE}:debug`) === 'true';

@@ -9,8 +9,10 @@ iconType: "solid"
 `instantdb-react-ui` is a library of react components that seamlessly connects your frontend and backend code with InstantDB. 
 
 - Data queries and updates are automatically built into your UI components. 
-- Just specify the entity and field names and the component will handle the rest.
-- No more spending time writing manual `onChange` or `onSubmit` handlers for every single UI element!
+- Uses Tanstack Form under the hood to give you type-safety access to all your InstantDB schema entities and fields.
+- No more spending time writing manual db mutations or `onSubmit` handlers for every single UI element!
+- Automatically load and handle relations and link pickers for all cardinality types
+- Debounce/throttle server-side updates forany field with one line of code
 - Add `zod` to your instant schema for automatic frontend validation. Our ui components will automatically use zod validation + defaults to show errors and handle your forms.
 
 This library includes two main components with different modes.

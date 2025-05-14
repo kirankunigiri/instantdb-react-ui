@@ -18,6 +18,7 @@ import { createRoot } from 'react-dom/client';
 import schema from '~client/db/instant.schema';
 import { routeTree } from '~client/routeTree.gen';
 import { getEntityNames } from '~instantdb-react-ui/index';
+import { setIDBReactUIDebugMode } from '~instantdb-react-ui/utils/logger';
 
 // --------------------------------------------------------------------------------
 // InstantDB Setup
@@ -25,6 +26,9 @@ export const db = init({
 	appId: import.meta.env.VITE_INSTANT_APP_ID,
 	schema: schema,
 });
+
+// Set debug mode
+setIDBReactUIDebugMode(true);
 
 /** List of entity names */
 export const entityNames = getEntityNames(schema);

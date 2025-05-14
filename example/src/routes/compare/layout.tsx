@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 
 import schema from '~client/db/instant.schema';
 import { db } from '~client/main';
-import { useIDBForm } from '~instantdb-react-ui/form/use-idb-form';
+import { getErrorMessageForField, useIDBForm } from '~instantdb-react-ui/index';
 
 export const Route = createFileRoute('/compare')({
 	component: RouteComponent,
@@ -83,6 +83,7 @@ function InstantDBReactUIForm() {
 						name={field.name}
 						value={field.state.value}
 						onChange={e => field.handleChange(e.target.value)}
+						error={getErrorMessageForField(field)}
 					/>
 				)}
 			/>
@@ -162,6 +163,7 @@ function InstantDBReactUIForm() {
 						name={field.name}
 						value={field.state.value}
 						onChange={e => field.handleChange(e.target.value)}
+						error={getErrorMessageForField(field)}
 					/>
 				)}
 			/>
